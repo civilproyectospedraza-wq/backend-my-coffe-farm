@@ -1,0 +1,11 @@
+services:
+  api:
+    build: .
+    container_name: back-coffe
+    restart: unless-stopped
+    # Todas las variables se cargan desde el .env
+    env_file:
+      - .env
+    # El puerto se toma del .env (PORT). Host:Contenedor
+    ports:
+      - "${PORT}:${PORT}"
