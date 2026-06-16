@@ -1,0 +1,293 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+//  ENUMS
+// ============================================================
+
+enum Rol {
+  Administrador
+  Propietario
+  Cliente
+}
+
+enum TipoIdentificacion {
+  CC
+  CE
+  TI
+  PA
+  NIT
+}
+
+enum EstadoParcela {
+  disponible
+  ocupada
+}
+
+enum EstadoSuscripcion {
+  activa
+  finalizada
+  cancelada
+}
+
+// ============================================================
+//  UBICACIÓN (DIVIPOLA - DANE)
+// ============================================================
+
+model Departamento {
+  id     Int    @id // Código DANE del departamento (2 dígitos)
+  nombre String @db.VarChar(100)
+
+  municipios Municipio[]
+
+  @@map("departamentos")
+}
+
+model Municipio {
+  id             Int    @id // Código DANE del municipio (5 dígitos)
+  nombre         String @db.VarChar(100)
+  departamentoId Int    @map("departamento_id")
+
+  departamento Departamento @relation(fields: [departamentoId], references: [id], onDelete: Restrict)
+
+  @@index([departamentoId])
+  @@map("municipios")
+}
+
+// ============================================================
+//  AUTENTICACIÓN
+// ============================================================
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  rol       Rol      @default(Cliente)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  personas    Persona[]
+  cliente     Cliente?
+  propietario Propietario?
+
+  @@map("users")
+}
+
+// ============================================================
+//  PERSONAS Y CLIENTES
+// ============================================================
+
+model Persona {
+  id                 String              @id @default(uuid())
+  usuarioId          String?             @map("usuario_id")
+  nombre             String              @db.VarChar(150)
+  telefono           String?             @db.VarChar(20)
+  direccion          String?             @db.Text
+  email              String?             @unique @db.VarChar(100)
+  tipoIdentificacion TipoIdentificacion? @map("tipo_identificacion")
+  identificacion     String?             @unique @db.VarChar(30)
+  createdAt          DateTime            @default(now()) @map("created_at")
+
+  // Relación opcional con el usuario del sistema de auth.
+  usuario     User?        @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  propietario Propietario?
+
+  @@index([usuarioId])
+  @@map("personas")
+}
+
+model Cliente {
+  id        String   @id @default(uuid())
+  usuarioId String   @unique @map("usuario_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  usuario       User          @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  suscripciones Suscripcion[]
+
+  @@map("clientes")
+}
+
+model Propietario {
+  id        String   @id @default(uuid())
+  usuarioId String   @unique @map("usuario_id")
+  personaId String   @unique @map("persona_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  usuario User    @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  persona Persona @relation(fields: [personaId], references: [id], onDelete: Restrict)
+  fincas  Finca[]
+
+  @@map("propietarios")
+}
+
+// ============================================================
+//  FINCAS, ETAPAS Y PARCELAS
+// ============================================================
+
+model Finca {
+  id            String   @id @default(uuid())
+  propietarioId String   @map("propietario_id")
+  imagenId      String?  @map("imagen_id")
+  nombre        String   @db.VarChar(100)
+  ubicacion     String   @db.Text
+  municipio     String   @db.VarChar(100)
+  departamento  String   @db.VarChar(100)
+  altitudMetros Int?     @map("altitud_metros")
+  latitud       Decimal? @db.Decimal(9, 6)
+  longitud      Decimal? @db.Decimal(9, 6)
+  descripcion   String?  @db.Text
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  propietario Propietario @relation(fields: [propietarioId], references: [id], onDelete: Restrict)
+  imagen      ImagenAws?  @relation(fields: [imagenId], references: [id], onDelete: SetNull)
+  parcelas    Parcela[]
+
+  @@index([propietarioId])
+  @@index([imagenId])
+  @@map("fincas")
+}
+
+model Etapa {
+  id              String   @id @default(uuid())
+  nombre          String   @db.VarChar(100)
+  descripcion     String?  @db.Text
+  habilitadaVenta Boolean  @default(false) @map("habilitada_venta")
+  orden           Int
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  parcelasActuales Parcela[]        @relation("EtapaActual")
+  novedades        NovedadParcela[]
+
+  @@map("etapas")
+}
+
+model Parcela {
+  id              String        @id @default(uuid())
+  fincaId         String        @map("finca_id")
+  etapaActualId   String?       @map("etapa_actual_id")
+  versionActualId String?       @unique @map("version_actual_id")
+  estado          EstadoParcela @default(disponible)
+  latitud         Decimal?      @db.Decimal(9, 6)
+  longitud        Decimal?      @db.Decimal(9, 6)
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  finca         Finca           @relation(fields: [fincaId], references: [id], onDelete: Cascade)
+  etapaActual   Etapa?          @relation("EtapaActual", fields: [etapaActualId], references: [id], onDelete: SetNull)
+  versionActual VersionParcela? @relation("VersionActual", fields: [versionActualId], references: [id], onDelete: SetNull)
+
+  versiones VersionParcela[] @relation("ParcelaVersiones")
+  novedades NovedadParcela[]
+
+  @@index([fincaId])
+  @@index([estado])
+  @@index([etapaActualId])
+  @@map("parcelas")
+}
+
+// Snapshot inmutable de los datos de una parcela en un momento dado.
+// Las suscripciones se atan a una versión para preservar precio y datos.
+model VersionParcela {
+  id             String   @id @default(uuid())
+  parcelaId      String   @map("parcela_id")
+  numeroVersion  Int      @map("numero_version")
+  nombre         String   @db.VarChar(100)
+  descripcion    String?  @db.Text
+  areaHectareas  Decimal? @map("area_hectareas") @db.Decimal(8, 2)
+  precioAlquiler Decimal  @map("precio_alquiler") @db.Decimal(10, 2)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  parcela         Parcela       @relation("ParcelaVersiones", fields: [parcelaId], references: [id], onDelete: Cascade)
+  // Back-relation del puntero Parcela.versionActual.
+  parcelaActualDe Parcela?      @relation("VersionActual")
+  suscripciones   Suscripcion[]
+
+  @@unique([parcelaId, numeroVersion])
+  @@index([parcelaId])
+  @@map("version_parcelas")
+}
+
+// ============================================================
+//  SUSCRIPCIONES (contratos de arriendo)
+// ============================================================
+
+model Suscripcion {
+  id               String            @id @default(uuid())
+  clienteId        String            @map("cliente_id")
+  versionParcelaId String            @map("version_parcela_id")
+  fechaInicio      DateTime          @map("fecha_inicio") @db.Date
+  fechaFin         DateTime          @map("fecha_fin") @db.Date
+  precioTotal      Decimal           @map("precio_total") @db.Decimal(10, 2)
+  estado           EstadoSuscripcion @default(activa)
+  direccionEnvio   String            @map("direccion_envio") @db.Text
+  createdAt        DateTime          @default(now()) @map("created_at")
+
+  cliente        Cliente        @relation(fields: [clienteId], references: [id], onDelete: Restrict)
+  versionParcela VersionParcela @relation(fields: [versionParcelaId], references: [id], onDelete: Restrict)
+
+  @@index([clienteId])
+  @@index([versionParcelaId])
+  @@map("suscripciones")
+}
+
+// ============================================================
+//  IMÁGENES (S3)
+// ============================================================
+
+// Tabla genérica: sin FK al negocio. El contexto lo dan tablas
+// como NovedadDetalle u otras que la referencien a futuro.
+model ImagenAws {
+  id        String   @id @default(uuid())
+  urlS3     String   @map("url_s3") @db.Text
+  bucket    String   @db.VarChar(100)
+  keyS3     String   @map("key_s3") @db.Text
+  tipo      String?  @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  detalles NovedadDetalle[]
+  fincas   Finca[]
+
+  @@map("imagenes_aws")
+}
+
+// ============================================================
+//  NOVEDADES DE PARCELA (reportes de avance)
+// ============================================================
+
+// Cabecera de un reporte de novedad de una parcela. Tanto la etapa como
+// la descripción son opcionales; las imágenes viven en NovedadDetalle.
+// El registro más reciente (createdAt) representa el estado actual.
+model NovedadParcela {
+  id          String   @id @default(uuid())
+  parcelaId   String   @map("parcela_id")
+  etapaId     String?  @map("etapa_id")
+  descripcion String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  parcela  Parcela          @relation(fields: [parcelaId], references: [id], onDelete: Cascade)
+  etapa    Etapa?           @relation(fields: [etapaId], references: [id], onDelete: SetNull)
+  detalles NovedadDetalle[]
+
+  @@index([parcelaId, createdAt])
+  @@map("novedades_parcela")
+}
+
+// Detalle de una novedad: cada fila es una imagen del reporte.
+model NovedadDetalle {
+  id          String   @id @default(uuid())
+  novedadId   String   @map("novedad_id")
+  imagenAwsId String   @map("imagen_aws_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  novedad   NovedadParcela @relation(fields: [novedadId], references: [id], onDelete: Cascade)
+  imagenAws ImagenAws      @relation(fields: [imagenAwsId], references: [id], onDelete: Cascade)
+
+  @@index([novedadId])
+  @@map("novedad_detalle")
+}

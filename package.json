@@ -1,0 +1,51 @@
+{
+  "name": "back-coffe",
+  "version": "1.0.0",
+  "description": "Backend con arquitectura hexagonal, Prisma, TypeScript y JWT",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/index.ts",
+    "build": "tsc && tsc-alias",
+    "start": "node dist/index.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "prisma:seed": "prisma db seed"
+  },
+  "prisma": {
+    "seed": "ts-node --transpile-only -P tsconfig.json prisma/seed.ts"
+  },
+  "keywords": [
+    "hexagonal",
+    "prisma",
+    "typescript",
+    "jwt"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1068.0",
+    "@aws-sdk/s3-request-presigner": "^3.1068.0",
+    "@prisma/client": "^6.1.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.2.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/multer": "^2.1.0",
+    "@types/node": "^22.10.2",
+    "prisma": "^6.1.0",
+    "ts-node-dev": "^2.0.0",
+    "tsc-alias": "^1.8.10",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.7.2"
+  }
+}

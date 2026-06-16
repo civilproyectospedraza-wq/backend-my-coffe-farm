@@ -1,0 +1,14 @@
+import bcrypt from "bcryptjs";
+import { PasswordHasher } from "../../domain/ports/PasswordHasher";
+
+export class BcryptPasswordHasher implements PasswordHasher {
+  constructor(private readonly saltRounds = 10) {}
+
+  hash(plain: string): Promise<string> {
+    return bcrypt.hash(plain, this.saltRounds);
+  }
+
+  compare(plain: string, hashed: string): Promise<boolean> {
+    return bcrypt.compare(plain, hashed);
+  }
+}
