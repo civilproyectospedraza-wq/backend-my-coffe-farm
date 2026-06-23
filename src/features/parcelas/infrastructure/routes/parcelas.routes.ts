@@ -8,16 +8,9 @@ export const parcelasRoutes = Router();
 // Todas las rutas de parcelas requieren usuario autenticado.
 parcelasRoutes.use(authMiddleware);
 
-parcelasRoutes.post("/", parcelaController.create);
+// Crear parcela acepta `multipart/form-data`: incluye la primera novedad y
+// sus imágenes opcionales en el campo `imagenes`.
+parcelasRoutes.post("/", uploadImagenes, parcelaController.create);
 parcelasRoutes.get("/", parcelaController.list);
 parcelasRoutes.get("/:id", parcelaController.getById);
 parcelasRoutes.put("/:id", parcelaController.update);
-
-// Novedades (reportes de avance) de una parcela.
-parcelasRoutes.get("/:id/novedades", parcelaController.listNovedades);
-// Acepta `multipart/form-data` con varias imágenes opcionales en `imagenes`.
-parcelasRoutes.post(
-  "/:id/novedades",
-  uploadImagenes,
-  parcelaController.registrarNovedad
-);

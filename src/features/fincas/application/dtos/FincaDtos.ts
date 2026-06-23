@@ -83,9 +83,8 @@ export interface ResumenFinca {
   alquileres: {
     total: number;
     porEstado: {
-      activa: number;
-      finalizada: number;
-      cancelada: number;
+      pendiente: number;
+      pagado: number;
     };
     rentabilidad: number;
   };

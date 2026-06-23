@@ -23,4 +23,19 @@ export const env = {
     region: required("AWS_REGION"),
     s3Bucket: required("AWS_S3_BUCKET_NAME"),
   },
+  images: {
+    apiUrl: required("IMAGES_API_URL", "https://mycoffeefarm.com/api-imagenes"),
+    project: required("IMAGES_PROJECT", "my-coffe-farm"),
+  },
+  // Stripe: opcional al arrancar. El gateway falla con un error claro si se usa
+  // sin `secretKey`/`webhookSecret` configurados.
+  stripe: {
+    secretKey: process.env.STRIPE_SECRET_KEY ?? "",
+    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? "",
+    currency: process.env.STRIPE_CURRENCY ?? "cop",
+    successUrl:
+      process.env.STRIPE_SUCCESS_URL ?? "https://mycoffeefarm.com/pago/exito",
+    cancelUrl:
+      process.env.STRIPE_CANCEL_URL ?? "https://mycoffeefarm.com/pago/cancelado",
+  },
 };

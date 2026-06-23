@@ -1,5 +1,5 @@
 import { prisma } from "@shared/infrastructure/prisma/prismaClient";
-import { s3Service } from "@shared/services/aws/S3Service";
+import { localImageService } from "@shared/services/images/LocalImageService";
 import { BuscarFincasUseCase } from "../application/use-cases/BuscarFincasUseCase";
 import { CreateFincaUseCase } from "../application/use-cases/CreateFincaUseCase";
 import { GetFincaImagenUrlUseCase } from "../application/use-cases/GetFincaImagenUrlUseCase";
@@ -11,14 +11,14 @@ import { PrismaFincaRepository } from "./persistence/PrismaFincaRepository";
 
 const fincaRepository = new PrismaFincaRepository(prisma);
 
-const createFincaUseCase = new CreateFincaUseCase(fincaRepository, s3Service);
-const updateFincaUseCase = new UpdateFincaUseCase(fincaRepository, s3Service);
+const createFincaUseCase = new CreateFincaUseCase(fincaRepository, localImageService);
+const updateFincaUseCase = new UpdateFincaUseCase(fincaRepository, localImageService);
 const listFincasUseCase = new ListFincasUseCase(fincaRepository);
-const resumenFincaUseCase = new ResumenFincaUseCase(fincaRepository, s3Service);
+const resumenFincaUseCase = new ResumenFincaUseCase(fincaRepository, localImageService);
 const buscarFincasUseCase = new BuscarFincasUseCase(fincaRepository);
 const getFincaImagenUrlUseCase = new GetFincaImagenUrlUseCase(
   fincaRepository,
-  s3Service
+  localImageService
 );
 
 export const fincaController = new FincaController(

@@ -13,19 +13,16 @@ import { Parcela } from "../../domain/entities/Parcela";
 import {
   CreateParcelaData,
   ListParcelasParams,
-  NovedadRaw,
   ParcelaRepository,
-  RegistrarNovedadData,
   UpdateParcelaData,
 } from "../../domain/ports/ParcelaRepository";
 
-// Regla de negocio "disponible para la venta": estado disponible, etapa
-// actual habilitada para venta y sin ninguna suscripción activa.
+// Regla de negocio "disponible para la venta": estado disponible y con versión
+// actual. Al pagar una venta la parcela pasa a `ocupada`, así que el estado es
+// la única condición de visibilidad (la etapa tampoco la condiciona).
 const disponibleParaVentaWhere: Prisma.ParcelaWhereInput = {
   estado: "disponible",
   versionActualId: { not: null },
-  etapaActual: { is: { habilitadaVenta: true } },
-  versiones: { none: { suscripciones: { some: { estado: "activa" } } } },
 };
 
 const parcelaInclude = {
@@ -38,16 +35,6 @@ const parcelaInclude = {
 
 type ParcelaWithRelations = Prisma.ParcelaGetPayload<{
   include: typeof parcelaInclude;
-}>;
-
-// Relaciones que componen una novedad de parcela (etapa + imágenes).
-const novedadInclude = {
-  etapa: { select: { id: true, nombre: true, orden: true } },
-  detalles: { orderBy: { createdAt: "asc" }, select: { imagenAwsId: true } },
-} satisfies Prisma.NovedadParcelaInclude;
-
-type NovedadWithRelations = Prisma.NovedadParcelaGetPayload<{
-  include: typeof novedadInclude;
 }>;
 
 export class PrismaParcelaRepository implements ParcelaRepository {
@@ -222,7 +209,7 @@ export class PrismaParcelaRepository implements ParcelaRepository {
               detalles: {
                 orderBy: { createdAt: "asc" },
                 take: 1,
-                select: { imagenAwsId: true },
+                select: { imagenLocalId: true, imagenAwsId: true },
               },
             },
           },
@@ -239,7 +226,10 @@ export class PrismaParcelaRepository implements ParcelaRepository {
       precioAlquiler: r.versionActual?.precioAlquiler.toNumber() ?? 0,
       latitud: r.latitud?.toNumber() ?? null,
       longitud: r.longitud?.toNumber() ?? null,
-      imagenActualId: r.novedades[0]?.detalles[0]?.imagenAwsId ?? null,
+      imagenActualId:
+        r.novedades[0]?.detalles[0]?.imagenLocalId ??
+        r.novedades[0]?.detalles[0]?.imagenAwsId ??
+        null,
       finca: r.finca,
       etapaActual: r.etapaActual,
     }));
@@ -265,6 +255,7 @@ export class PrismaParcelaRepository implements ParcelaRepository {
             longitud: true,
             descripcion: true,
             imagenId: true,
+            imagenLocalId: true,
           },
         },
         etapaActual: { select: { nombre: true, orden: true } },
@@ -277,7 +268,7 @@ export class PrismaParcelaRepository implements ParcelaRepository {
             etapa: { select: { nombre: true, orden: true } },
             detalles: {
               orderBy: { createdAt: "asc" },
-              select: { imagenAwsId: true },
+              select: { imagenLocalId: true, imagenAwsId: true },
             },
           },
         },
@@ -301,7 +292,10 @@ export class PrismaParcelaRepository implements ParcelaRepository {
       precioAlquiler: parcela.versionActual?.precioAlquiler.toNumber() ?? 0,
       latitud: parcela.latitud?.toNumber() ?? null,
       longitud: parcela.longitud?.toNumber() ?? null,
-      imagenActualId: novedadConImagen?.detalles[0]?.imagenAwsId ?? null,
+      imagenActualId:
+        novedadConImagen?.detalles[0]?.imagenLocalId ??
+        novedadConImagen?.detalles[0]?.imagenAwsId ??
+        null,
       finca: {
         id: parcela.finca.id,
         nombre: parcela.finca.nombre,
@@ -312,83 +306,28 @@ export class PrismaParcelaRepository implements ParcelaRepository {
         altitudMetros: parcela.finca.altitudMetros,
         latitud: parcela.finca.latitud?.toNumber() ?? null,
         longitud: parcela.finca.longitud?.toNumber() ?? null,
-        imagenId: parcela.finca.imagenId,
+        imagenId: parcela.finca.imagenLocalId ?? parcela.finca.imagenId,
       },
       etapaActual: parcela.etapaActual,
       // Galería plana: todas las imágenes de todas las novedades.
       galeria: parcela.novedades.flatMap((nov) =>
-        nov.detalles.map((det) => ({
-          imagenId: det.imagenAwsId,
-          titulo: nov.descripcion,
-          fecha: nov.createdAt,
-        }))
+        nov.detalles.flatMap((det) => {
+          const imagenId = det.imagenLocalId ?? det.imagenAwsId;
+          return imagenId
+            ? [{ imagenId, titulo: nov.descripcion, fecha: nov.createdAt }]
+            : [];
+        })
       ),
       // Historia de novedades para mostrar al cliente como "últimos reportes".
       historialNovedades: parcela.novedades.map((nov) => ({
         etapa: nov.etapa,
         fecha: nov.createdAt,
         descripcion: nov.descripcion,
-        imagenes: nov.detalles.map((det) => ({ imagenId: det.imagenAwsId })),
+        imagenes: nov.detalles.flatMap((det) => {
+          const imagenId = det.imagenLocalId ?? det.imagenAwsId;
+          return imagenId ? [{ imagenId }] : [];
+        }),
       })),
-    };
-  }
-
-  async registrarNovedad(data: RegistrarNovedadData): Promise<NovedadRaw> {
-    const novedad = await this.prisma.$transaction(async (tx) => {
-      // Garantiza que la parcela exista antes de crear la novedad.
-      await tx.parcela.findUniqueOrThrow({ where: { id: data.parcelaId } });
-
-      const created = await tx.novedadParcela.create({
-        data: {
-          parcelaId: data.parcelaId,
-          etapaId: data.etapaId ?? null,
-          descripcion: data.descripcion ?? null,
-          detalles: data.imagenIds.length
-            ? {
-                create: data.imagenIds.map((imagenAwsId) => ({ imagenAwsId })),
-              }
-            : undefined,
-        },
-        include: novedadInclude,
-      });
-
-      // El cambio de etapa es opcional; si viene, avanza la etapa actual.
-      if (data.etapaId) {
-        await tx.parcela.update({
-          where: { id: data.parcelaId },
-          data: { etapaActualId: data.etapaId },
-        });
-      }
-
-      return created;
-    });
-
-    return this.toNovedadRaw(novedad);
-  }
-
-  async findNovedades(parcelaId: string): Promise<NovedadRaw[]> {
-    const records = await this.prisma.novedadParcela.findMany({
-      where: { parcelaId },
-      orderBy: { createdAt: "desc" },
-      include: novedadInclude,
-    });
-
-    return records.map((r) => this.toNovedadRaw(r));
-  }
-
-  private toNovedadRaw(record: NovedadWithRelations): NovedadRaw {
-    return {
-      id: record.id,
-      descripcion: record.descripcion,
-      fecha: record.createdAt,
-      etapa: record.etapa
-        ? {
-            id: record.etapa.id,
-            nombre: record.etapa.nombre,
-            orden: record.etapa.orden,
-          }
-        : null,
-      imagenes: record.detalles.map((det) => ({ imagenId: det.imagenAwsId })),
     };
   }
 

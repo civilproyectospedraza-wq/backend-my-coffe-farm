@@ -43,24 +43,6 @@ export interface ListParcelasParams extends PaginationParams {
   estado?: EstadoParcela;
 }
 
-export interface RegistrarNovedadData {
-  parcelaId: string;
-  // Cambio de etapa opcional: si viene, también avanza la etapa actual.
-  etapaId?: string | null;
-  descripcion?: string | null;
-  // Ids de las imágenes ya subidas a S3 (pueden ser ninguna).
-  imagenIds: string[];
-}
-
-/** Novedad cruda devuelta por el repositorio (con ids de imagen sin firmar). */
-export interface NovedadRaw {
-  id: string;
-  descripcion: string | null;
-  fecha: Date;
-  etapa: { id: string; nombre: string; orden: number } | null;
-  imagenes: Array<{ imagenId: string }>;
-}
-
 /** Puerto: persistencia de parcelas (con versionado). */
 export interface ParcelaRepository {
   create(data: CreateParcelaData): Promise<Parcela>;
@@ -70,8 +52,8 @@ export interface ParcelaRepository {
 
   /**
    * Catálogo público: parcelas disponibles para la venta. Solo incluye
-   * parcelas con estado `disponible`, etapa actual habilitada para venta y
-   * sin ninguna suscripción activa.
+   * parcelas con estado `disponible` y versión actual (al pagar una venta la
+   * parcela pasa a `ocupada` y deja de aparecer).
    */
   findAvailableCatalog(
     params: ListCatalogParcelasInput
@@ -79,13 +61,4 @@ export interface ParcelaRepository {
 
   /** Detalle público de una parcela disponible (null si no aplica). */
   findAvailableDetail(id: string): Promise<CatalogParcelaDetailRaw | null>;
-
-  /**
-   * Registra una novedad (reporte de avance) de una parcela. Si trae etapa,
-   * además actualiza la etapa actual de la parcela. Devuelve la novedad creada.
-   */
-  registrarNovedad(data: RegistrarNovedadData): Promise<NovedadRaw>;
-
-  /** Historia de novedades de una parcela, de la más reciente a la más antigua. */
-  findNovedades(parcelaId: string): Promise<NovedadRaw[]>;
 }

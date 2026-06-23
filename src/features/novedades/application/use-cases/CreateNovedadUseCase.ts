@@ -1,23 +1,28 @@
 import { ImageStorage } from "../../domain/ports/ImageStorage";
 import {
   NovedadRaw,
-  ParcelaRepository,
-} from "../../domain/ports/ParcelaRepository";
+  NovedadRepository,
+} from "../../domain/ports/NovedadRepository";
 import {
+  CreateNovedadInput,
   NovedadImagen,
   NovedadResponse,
-  RegistrarNovedadInput,
 } from "../dtos/NovedadDtos";
 
-export class RegistrarNovedadParcelaUseCase {
+/**
+ * Crea una novedad (reporte de avance) de una parcela. Sube primero las
+ * imágenes a S3 y luego registra la novedad con su detalle. Es el caso de uso
+ * que se reutiliza al crear una parcela (para su primera novedad).
+ */
+export class CreateNovedadUseCase {
   constructor(
-    private readonly parcelaRepository: ParcelaRepository,
+    private readonly novedadRepository: NovedadRepository,
     private readonly imageStorage: ImageStorage
   ) {}
 
   async execute(
     parcelaId: string,
-    input: RegistrarNovedadInput,
+    input: CreateNovedadInput,
     imagenes: NovedadImagen[]
   ): Promise<NovedadResponse> {
     // Las imágenes son opcionales: se suben primero a S3 y luego se
@@ -31,7 +36,7 @@ export class RegistrarNovedadParcelaUseCase {
       imagenIds.push(stored.id);
     }
 
-    const novedad = await this.parcelaRepository.registrarNovedad({
+    const novedad = await this.novedadRepository.create({
       parcelaId,
       etapaId: input.etapaId,
       descripcion: input.descripcion,

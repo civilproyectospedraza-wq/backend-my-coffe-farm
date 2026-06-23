@@ -30,10 +30,9 @@ enum EstadoParcela {
   ocupada
 }
 
-enum EstadoSuscripcion {
-  activa
-  finalizada
-  cancelada
+enum EstadoVenta {
+  pendiente
+  pagado
 }
 
 // ============================================================
@@ -73,9 +72,11 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  personas    Persona[]
-  cliente     Cliente?
-  propietario Propietario?
+  personas             Persona[]
+  cliente              Cliente?
+  propietario          Propietario?
+  ventasCreadas        Venta[]
+  suscripcionesCreadas Suscripcion[]
 
   @@map("users")
 }
@@ -109,7 +110,8 @@ model Cliente {
   createdAt DateTime @default(now()) @map("created_at")
 
   usuario       User          @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  suscripciones Suscripcion[]
+  ventas        Venta[]
+  facturaciones Facturacion[]
 
   @@map("clientes")
 }
@@ -135,6 +137,7 @@ model Finca {
   id            String   @id @default(uuid())
   propietarioId String   @map("propietario_id")
   imagenId      String?  @map("imagen_id")
+  imagenLocalId String?  @map("imagen_local_id")
   nombre        String   @db.VarChar(100)
   ubicacion     String   @db.Text
   municipio     String   @db.VarChar(100)
@@ -145,12 +148,14 @@ model Finca {
   descripcion   String?  @db.Text
   createdAt     DateTime @default(now()) @map("created_at")
 
-  propietario Propietario @relation(fields: [propietarioId], references: [id], onDelete: Restrict)
-  imagen      ImagenAws?  @relation(fields: [imagenId], references: [id], onDelete: SetNull)
+  propietario Propietario  @relation(fields: [propietarioId], references: [id], onDelete: Restrict)
+  imagen      ImagenAws?   @relation(fields: [imagenId], references: [id], onDelete: SetNull)
+  imagenLocal ImagenLocal? @relation(fields: [imagenLocalId], references: [id], onDelete: SetNull)
   parcelas    Parcela[]
 
   @@index([propietarioId])
   @@index([imagenId])
+  @@index([imagenLocalId])
   @@map("fincas")
 }
 
@@ -182,8 +187,10 @@ model Parcela {
   etapaActual   Etapa?          @relation("EtapaActual", fields: [etapaActualId], references: [id], onDelete: SetNull)
   versionActual VersionParcela? @relation("VersionActual", fields: [versionActualId], references: [id], onDelete: SetNull)
 
-  versiones VersionParcela[] @relation("ParcelaVersiones")
-  novedades NovedadParcela[]
+  versiones     VersionParcela[] @relation("ParcelaVersiones")
+  novedades     NovedadParcela[]
+  ventas        Venta[]
+  suscripciones Suscripcion[]
 
   @@index([fincaId])
   @@index([estado])
@@ -203,10 +210,10 @@ model VersionParcela {
   precioAlquiler Decimal  @map("precio_alquiler") @db.Decimal(10, 2)
   createdAt      DateTime @default(now()) @map("created_at")
 
-  parcela         Parcela       @relation("ParcelaVersiones", fields: [parcelaId], references: [id], onDelete: Cascade)
+  parcela         Parcela  @relation("ParcelaVersiones", fields: [parcelaId], references: [id], onDelete: Cascade)
   // Back-relation del puntero Parcela.versionActual.
-  parcelaActualDe Parcela?      @relation("VersionActual")
-  suscripciones   Suscripcion[]
+  parcelaActualDe Parcela? @relation("VersionActual")
+  ventas          Venta[]
 
   @@unique([parcelaId, numeroVersion])
   @@index([parcelaId])
@@ -214,26 +221,103 @@ model VersionParcela {
 }
 
 // ============================================================
-//  SUSCRIPCIONES (contratos de arriendo)
+//  VENTAS, SUSCRIPCIONES Y FACTURACIÓN
 // ============================================================
 
-model Suscripcion {
-  id               String            @id @default(uuid())
-  clienteId        String            @map("cliente_id")
-  versionParcelaId String            @map("version_parcela_id")
-  fechaInicio      DateTime          @map("fecha_inicio") @db.Date
-  fechaFin         DateTime          @map("fecha_fin") @db.Date
-  precioTotal      Decimal           @map("precio_total") @db.Decimal(10, 2)
-  estado           EstadoSuscripcion @default(activa)
-  direccionEnvio   String            @map("direccion_envio") @db.Text
-  createdAt        DateTime          @default(now()) @map("created_at")
+// Venta de una parcela. Nace en estado `pendiente` con los datos del comprador
+// guardados inline (el Cliente/User/Persona reales se crean al completar). Al
+// confirmarse el pago en Stripe pasa a `pagado`: se crea el cliente, la
+// suscripción, la facturación y la transacción, y la parcela queda ocupada.
+model Venta {
+  id               String      @id @default(uuid())
+  versionParcelaId String      @map("version_parcela_id")
+  parcelaId        String      @map("parcela_id")
+  clienteId        String?     @map("cliente_id") // se llena al completar el pago
+  valor            Decimal     @db.Decimal(10, 2)
+  estado           EstadoVenta @default(pendiente)
+  suscripcionId    String?     @unique @map("suscripcion_id")
 
-  cliente        Cliente        @relation(fields: [clienteId], references: [id], onDelete: Restrict)
-  versionParcela VersionParcela @relation(fields: [versionParcelaId], references: [id], onDelete: Restrict)
+  // Datos del comprador capturados al crear la venta.
+  clienteNombre             String              @map("cliente_nombre") @db.VarChar(150)
+  clienteEmail              String              @map("cliente_email") @db.VarChar(100)
+  clienteTelefono           String?             @map("cliente_telefono") @db.VarChar(20)
+  clienteDireccion          String?             @map("cliente_direccion") @db.Text
+  clienteTipoIdentificacion TipoIdentificacion? @map("cliente_tipo_identificacion")
+  clienteIdentificacion     String?             @map("cliente_identificacion") @db.VarChar(30)
 
+  // Stripe: id de la sesión de Checkout para correlacionar el webhook.
+  stripeSessionId String? @unique @map("stripe_session_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  // Usuario que registró la venta; null cuando la inicia un cliente anónimo.
+  createdBy String?  @map("created_by")
+
+  versionParcela      VersionParcela      @relation(fields: [versionParcelaId], references: [id], onDelete: Restrict)
+  parcela             Parcela             @relation(fields: [parcelaId], references: [id], onDelete: Restrict)
+  cliente             Cliente?            @relation(fields: [clienteId], references: [id], onDelete: Restrict)
+  suscripcion         Suscripcion?        @relation(fields: [suscripcionId], references: [id], onDelete: SetNull)
+  creadoPor           User?               @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  facturaciones       Facturacion[]
+  transaccionesStripe TransaccionStripe[]
+
+  @@index([parcelaId])
   @@index([clienteId])
   @@index([versionParcelaId])
+  @@map("ventas")
+}
+
+// Registro de cada evento de pago de Stripe asociado a una venta. `eventId`
+// (id del evento de Stripe) es único para garantizar idempotencia del webhook.
+model TransaccionStripe {
+  id              String   @id @default(uuid())
+  ventaId         String   @map("venta_id")
+  eventId         String?  @unique @map("event_id")
+  sessionId       String?  @map("session_id")
+  paymentIntentId String?  @map("payment_intent_id")
+  monto           Decimal  @db.Decimal(10, 2)
+  moneda          String   @db.VarChar(10)
+  estado          String   @db.VarChar(30)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  venta Venta @relation(fields: [ventaId], references: [id], onDelete: Cascade)
+
+  @@index([ventaId])
+  @@map("transacciones_stripe")
+}
+
+// Contrato de arriendo. Solo se crea cuando una venta pasa a `pagado`.
+model Suscripcion {
+  id          String   @id @default(uuid())
+  parcelaId   String   @map("parcela_id")
+  fechaInicio DateTime @map("fecha_inicio") @db.Date
+  fechaFin    DateTime @map("fecha_fin") @db.Date
+  createdAt   DateTime @default(now()) @map("created_at")
+  // Hereda el createdBy de la venta; null cuando la inició un cliente anónimo.
+  createdBy   String?  @map("created_by")
+
+  parcela   Parcela @relation(fields: [parcelaId], references: [id], onDelete: Restrict)
+  creadoPor User?   @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  // Back-relation del puntero Venta.suscripcion (1:1).
+  venta     Venta?
+
+  @@index([parcelaId])
   @@map("suscripciones")
+}
+
+// Registro del pago de una venta. Solo se crea cuando la venta pasa a `pagado`.
+model Facturacion {
+  id        String   @id @default(uuid())
+  ventaId   String   @map("venta_id")
+  clienteId String   @map("cliente_id")
+  valor     Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  venta   Venta   @relation(fields: [ventaId], references: [id], onDelete: Cascade)
+  cliente Cliente @relation(fields: [clienteId], references: [id], onDelete: Restrict)
+
+  @@index([ventaId])
+  @@index([clienteId])
+  @@map("facturacion")
 }
 
 // ============================================================
@@ -254,6 +338,22 @@ model ImagenAws {
   fincas   Finca[]
 
   @@map("imagenes_aws")
+}
+
+// Imágenes almacenadas en el servicio propio (https://mycoffeefarm.com/api-imagenes).
+// El `id` lo genera el servicio remoto al subir; `url` es la ruta relativa que
+// devuelve. El servicio no guarda metadatos: esta tabla es la única referencia.
+model ImagenLocal {
+  id        String   @id
+  project   String   @db.VarChar(100)
+  url       String   @db.Text
+  tipo      String?  @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  detalles NovedadDetalle[]
+  fincas   Finca[]
+
+  @@map("imagenes_locales")
 }
 
 // ============================================================
@@ -280,14 +380,17 @@ model NovedadParcela {
 
 // Detalle de una novedad: cada fila es una imagen del reporte.
 model NovedadDetalle {
-  id          String   @id @default(uuid())
-  novedadId   String   @map("novedad_id")
-  imagenAwsId String   @map("imagen_aws_id")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id            String   @id @default(uuid())
+  novedadId     String   @map("novedad_id")
+  imagenAwsId   String?  @map("imagen_aws_id")
+  imagenLocalId String?  @map("imagen_local_id")
+  createdAt     DateTime @default(now()) @map("created_at")
 
-  novedad   NovedadParcela @relation(fields: [novedadId], references: [id], onDelete: Cascade)
-  imagenAws ImagenAws      @relation(fields: [imagenAwsId], references: [id], onDelete: Cascade)
+  novedad     NovedadParcela @relation(fields: [novedadId], references: [id], onDelete: Cascade)
+  imagenAws   ImagenAws?     @relation(fields: [imagenAwsId], references: [id], onDelete: Cascade)
+  imagenLocal ImagenLocal?   @relation(fields: [imagenLocalId], references: [id], onDelete: Cascade)
 
   @@index([novedadId])
+  @@index([imagenLocalId])
   @@map("novedad_detalle")
 }

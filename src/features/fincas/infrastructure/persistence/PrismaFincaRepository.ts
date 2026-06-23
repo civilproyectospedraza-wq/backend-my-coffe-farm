@@ -19,12 +19,23 @@ export class PrismaFincaRepository implements FincaRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
   async create(data: CreateFincaData): Promise<Finca> {
-    const created = await this.prisma.finca.create({ data });
+    // El id de imagen ahora se persiste en la tabla `imagenes_locales`.
+    const { imagenId, ...rest } = data;
+    const created = await this.prisma.finca.create({
+      data: { ...rest, imagenLocalId: imagenId ?? null },
+    });
     return this.toDomain(created);
   }
 
   async update(id: string, data: UpdateFincaData): Promise<Finca> {
-    const updated = await this.prisma.finca.update({ where: { id }, data });
+    const { imagenId, ...rest } = data;
+    const updated = await this.prisma.finca.update({
+      where: { id },
+      data: {
+        ...rest,
+        ...(imagenId !== undefined && { imagenLocalId: imagenId }),
+      },
+    });
     return this.toDomain(updated);
   }
 
@@ -87,16 +98,15 @@ export class PrismaFincaRepository implements FincaRepository {
 
     const parcelaIds = finca.parcelas.map((p) => p.id);
 
-    // Suscripciones de la finca que se solapan con el período solicitado:
-    // una suscripción cuenta si estuvo vigente en algún momento del rango.
-    const suscripciones = parcelaIds.length
-      ? await this.prisma.suscripcion.findMany({
+    // Ventas de la finca registradas dentro del período solicitado. La
+    // rentabilidad solo suma las ventas ya pagadas.
+    const ventas = parcelaIds.length
+      ? await this.prisma.venta.findMany({
           where: {
-            versionParcela: { parcelaId: { in: parcelaIds } },
-            fechaInicio: { lte: fechaFin },
-            fechaFin: { gte: fechaInicio },
+            parcelaId: { in: parcelaIds },
+            createdAt: { gte: fechaInicio, lte: fechaFin },
           },
-          select: { precioTotal: true, estado: true },
+          select: { valor: true, estado: true },
         })
       : [];
 
@@ -105,11 +115,13 @@ export class PrismaFincaRepository implements FincaRepository {
       porEstadoParcela[parcela.estado] += 1;
     }
 
-    const porEstadoAlquiler = { activa: 0, finalizada: 0, cancelada: 0 };
+    const porEstadoAlquiler = { pendiente: 0, pagado: 0 };
     let rentabilidad = 0;
-    for (const s of suscripciones) {
-      porEstadoAlquiler[s.estado] += 1;
-      rentabilidad += s.precioTotal.toNumber();
+    for (const v of ventas) {
+      porEstadoAlquiler[v.estado] += 1;
+      if (v.estado === "pagado") {
+        rentabilidad += v.valor.toNumber();
+      }
     }
 
     return {
@@ -123,7 +135,7 @@ export class PrismaFincaRepository implements FincaRepository {
         latitud: finca.latitud?.toNumber() ?? null,
         longitud: finca.longitud?.toNumber() ?? null,
         descripcion: finca.descripcion,
-        imagenId: finca.imagenId,
+        imagenId: finca.imagenLocalId ?? finca.imagenId,
         // La URL firmada la resuelve ResumenFincaUseCase (no acoplar el repo a S3).
         imagenUrl: null,
         createdAt: finca.createdAt,
@@ -150,7 +162,7 @@ export class PrismaFincaRepository implements FincaRepository {
         })),
       },
       alquileres: {
-        total: suscripciones.length,
+        total: ventas.length,
         porEstado: porEstadoAlquiler,
         rentabilidad,
       },
@@ -161,7 +173,7 @@ export class PrismaFincaRepository implements FincaRepository {
     return new Finca({
       id: record.id,
       propietarioId: record.propietarioId,
-      imagenId: record.imagenId,
+      imagenId: record.imagenLocalId ?? record.imagenId,
       nombre: record.nombre,
       ubicacion: record.ubicacion,
       municipio: record.municipio,

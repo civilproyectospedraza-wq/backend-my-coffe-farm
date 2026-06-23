@@ -3,16 +3,20 @@ import { z } from "zod";
 const latitud = z.coerce.number().min(-90).max(90);
 const longitud = z.coerce.number().min(-180).max(180);
 
+// Crear parcela: se envía como `multipart/form-data` porque puede incluir una
+// primera novedad. `etapaId`, `novedadDescripcion` y las imágenes (campo
+// `imagenes`) son todos opcionales; si llega `etapaId` fija la etapa actual.
 export const createParcelaSchema = z.object({
   fincaId: z.string().uuid("fincaId debe ser un UUID válido"),
   nombre: z.string().min(1, "El nombre es obligatorio").max(100),
   descripcion: z.string().nullable().optional(),
   areaHectareas: z.coerce.number().positive().nullable().optional(),
   precioAlquiler: z.coerce.number().positive("El precio debe ser mayor a 0"),
-  etapaActualId: z.string().uuid().nullable().optional(),
   estado: z.enum(["disponible", "ocupada"]).optional(),
   latitud: latitud.nullable().optional(),
   longitud: longitud.nullable().optional(),
+  etapaId: z.string().uuid("etapaId debe ser un UUID válido").optional(),
+  novedadDescripcion: z.string().trim().min(1).max(2000).nullable().optional(),
 });
 
 export const updateParcelaSchema = z
@@ -39,13 +43,6 @@ export const listParcelasSchema = z.object({
 
 export const parcelaIdParamSchema = z.object({
   id: z.string().uuid("El id debe ser un UUID válido"),
-});
-
-// Registrar novedad: etapa y descripción opcionales; las imágenes (opcionales)
-// llegan como archivos en `multipart/form-data`, no en el body.
-export const registrarNovedadSchema = z.object({
-  etapaId: z.string().uuid("etapaId debe ser un UUID válido").nullable().optional(),
-  descripcion: z.string().trim().min(1).max(2000).nullable().optional(),
 });
 
 // Catálogo público: no expone el filtro por estado (siempre "disponible").

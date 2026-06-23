@@ -1,16 +1,13 @@
 import { NextFunction, Request, Response } from "express";
-import { NovedadImagen } from "../../application/dtos/NovedadDtos";
+import { NovedadImagen } from "@features/novedades/application/dtos/NovedadDtos";
 import { CreateParcelaUseCase } from "../../application/use-cases/CreateParcelaUseCase";
 import { GetParcelaUseCase } from "../../application/use-cases/GetParcelaUseCase";
-import { ListNovedadesParcelaUseCase } from "../../application/use-cases/ListNovedadesParcelaUseCase";
 import { ListParcelasUseCase } from "../../application/use-cases/ListParcelasUseCase";
-import { RegistrarNovedadParcelaUseCase } from "../../application/use-cases/RegistrarNovedadParcelaUseCase";
 import { UpdateParcelaUseCase } from "../../application/use-cases/UpdateParcelaUseCase";
 import {
   createParcelaSchema,
   listParcelasSchema,
   parcelaIdParamSchema,
-  registrarNovedadSchema,
   updateParcelaSchema,
 } from "./validators/parcelaSchemas";
 
@@ -30,15 +27,14 @@ export class ParcelaController {
     private readonly createParcelaUseCase: CreateParcelaUseCase,
     private readonly updateParcelaUseCase: UpdateParcelaUseCase,
     private readonly listParcelasUseCase: ListParcelasUseCase,
-    private readonly getParcelaUseCase: GetParcelaUseCase,
-    private readonly registrarNovedadUseCase: RegistrarNovedadParcelaUseCase,
-    private readonly listNovedadesUseCase: ListNovedadesParcelaUseCase
+    private readonly getParcelaUseCase: GetParcelaUseCase
   ) {}
 
   create = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const data = createParcelaSchema.parse(req.body);
-      const parcela = await this.createParcelaUseCase.execute(data);
+      const imagenes = toNovedadImagenes(req.files as Express.Multer.File[]);
+      const parcela = await this.createParcelaUseCase.execute(data, imagenes);
       return res.status(201).json(parcela);
     } catch (error) {
       return next(error);
@@ -71,36 +67,6 @@ export class ParcelaController {
       const { id } = parcelaIdParamSchema.parse(req.params);
       const parcela = await this.getParcelaUseCase.execute(id);
       return res.status(200).json(parcela);
-    } catch (error) {
-      return next(error);
-    }
-  };
-
-  registrarNovedad = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) => {
-    try {
-      const { id } = parcelaIdParamSchema.parse(req.params);
-      const data = registrarNovedadSchema.parse(req.body);
-      const imagenes = toNovedadImagenes(req.files as Express.Multer.File[]);
-      const novedad = await this.registrarNovedadUseCase.execute(
-        id,
-        data,
-        imagenes
-      );
-      return res.status(201).json(novedad);
-    } catch (error) {
-      return next(error);
-    }
-  };
-
-  listNovedades = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { id } = parcelaIdParamSchema.parse(req.params);
-      const novedades = await this.listNovedadesUseCase.execute(id);
-      return res.status(200).json(novedades);
     } catch (error) {
       return next(error);
     }
