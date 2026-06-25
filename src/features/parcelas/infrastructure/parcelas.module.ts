@@ -1,6 +1,5 @@
-import { createNovedadUseCase } from "@features/novedades/infrastructure/novedades.module";
 import { prisma } from "@shared/infrastructure/prisma/prismaClient";
-import { s3Service } from "@shared/services/aws/S3Service";
+import { localImageService } from "@shared/services/images/LocalImageService";
 import { CreateParcelaUseCase } from "../application/use-cases/CreateParcelaUseCase";
 import { GetCatalogParcelaDetailUseCase } from "../application/use-cases/GetCatalogParcelaDetailUseCase";
 import { GetParcelaUseCase } from "../application/use-cases/GetParcelaUseCase";
@@ -13,12 +12,16 @@ import { PrismaParcelaRepository } from "./persistence/PrismaParcelaRepository";
 
 const parcelaRepository = new PrismaParcelaRepository(prisma);
 
-// Reusa el caso de uso de novedades para la primera novedad de la parcela.
+// Las imágenes de portada de la parcela se almacenan con el servicio propio
+// (ImagenLocal), igual que las de los reportes.
 const createParcelaUseCase = new CreateParcelaUseCase(
   parcelaRepository,
-  createNovedadUseCase
+  localImageService
 );
-const updateParcelaUseCase = new UpdateParcelaUseCase(parcelaRepository);
+const updateParcelaUseCase = new UpdateParcelaUseCase(
+  parcelaRepository,
+  localImageService
+);
 const listParcelasUseCase = new ListParcelasUseCase(parcelaRepository);
 const getParcelaUseCase = new GetParcelaUseCase(parcelaRepository);
 
@@ -32,11 +35,11 @@ export const parcelaController = new ParcelaController(
 // --- Catálogo público ---
 const listCatalogParcelasUseCase = new ListCatalogParcelasUseCase(
   parcelaRepository,
-  s3Service
+  localImageService
 );
 const getCatalogParcelaDetailUseCase = new GetCatalogParcelaDetailUseCase(
   parcelaRepository,
-  s3Service
+  localImageService
 );
 
 export const publicParcelaController = new PublicParcelaController(

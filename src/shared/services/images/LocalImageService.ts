@@ -10,7 +10,7 @@ import { imageStorageClient } from "./HttpImageStorageClient";
 export interface UploadImageInput {
   buffer: Buffer;
   mimeType: string;
-  /** Categoría libre: 'finca', 'novedad', etc. */
+  /** Categoría libre: 'finca', 'reporte', etc. */
   tipo?: string;
 }
 

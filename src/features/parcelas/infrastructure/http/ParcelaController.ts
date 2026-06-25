@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { NovedadImagen } from "@features/novedades/application/dtos/NovedadDtos";
+import { UploadImagePayload } from "../../domain/ports/ImageStorage";
 import { CreateParcelaUseCase } from "../../application/use-cases/CreateParcelaUseCase";
 import { GetParcelaUseCase } from "../../application/use-cases/GetParcelaUseCase";
 import { ListParcelasUseCase } from "../../application/use-cases/ListParcelasUseCase";
@@ -12,7 +12,9 @@ import {
 } from "./validators/parcelaSchemas";
 
 /** Convierte los archivos recibidos por multer en payloads de imagen. */
-function toNovedadImagenes(files?: Express.Multer.File[]): NovedadImagen[] {
+function toParcelaImagenes(
+  files?: Express.Multer.File[]
+): UploadImagePayload[] {
   if (!files) {
     return [];
   }
@@ -33,7 +35,7 @@ export class ParcelaController {
   create = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const data = createParcelaSchema.parse(req.body);
-      const imagenes = toNovedadImagenes(req.files as Express.Multer.File[]);
+      const imagenes = toParcelaImagenes(req.files as Express.Multer.File[]);
       const parcela = await this.createParcelaUseCase.execute(data, imagenes);
       return res.status(201).json(parcela);
     } catch (error) {
@@ -45,7 +47,8 @@ export class ParcelaController {
     try {
       const { id } = parcelaIdParamSchema.parse(req.params);
       const data = updateParcelaSchema.parse(req.body);
-      const parcela = await this.updateParcelaUseCase.execute(id, data);
+      const imagenes = toParcelaImagenes(req.files as Express.Multer.File[]);
+      const parcela = await this.updateParcelaUseCase.execute(id, data, imagenes);
       return res.status(200).json(parcela);
     } catch (error) {
       return next(error);

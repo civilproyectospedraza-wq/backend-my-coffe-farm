@@ -4,49 +4,49 @@ import {
   PaginatedResult,
 } from "@shared/domain/pagination";
 import {
-  CreateNovedadData,
-  ListNovedadesParams,
-  NovedadListItemRaw,
-  NovedadRaw,
-  NovedadRepository,
-} from "../../domain/ports/NovedadRepository";
+  CreateReporteData,
+  ListReportesParams,
+  ReporteListItemRaw,
+  ReporteRaw,
+  ReporteRepository,
+} from "../../domain/ports/ReporteRepository";
 
-// Relaciones que componen una novedad (etapa + imágenes).
-const novedadInclude = {
+// Relaciones que componen un reporte (etapa + imágenes).
+const reporteInclude = {
   etapa: { select: { id: true, nombre: true, orden: true } },
-  detalles: {
+  imagenes: {
     orderBy: { createdAt: "asc" },
-    select: { imagenLocalId: true, imagenAwsId: true },
+    select: { imagenLocalId: true },
   },
-} satisfies Prisma.NovedadParcelaInclude;
+} satisfies Prisma.ReporteInclude;
 
-type NovedadWithRelations = Prisma.NovedadParcelaGetPayload<{
-  include: typeof novedadInclude;
+type ReporteWithRelations = Prisma.ReporteGetPayload<{
+  include: typeof reporteInclude;
 }>;
 
-// Novedad + parcela de origen (su nombre vive en la versión actual), para el
+// Reporte + parcela de origen (su nombre vive en la versión actual), para el
 // listado paginado.
-const novedadListInclude = {
-  ...novedadInclude,
+const reporteListInclude = {
+  ...reporteInclude,
   parcela: {
     select: { id: true, versionActual: { select: { nombre: true } } },
   },
-} satisfies Prisma.NovedadParcelaInclude;
+} satisfies Prisma.ReporteInclude;
 
-export class PrismaNovedadRepository implements NovedadRepository {
+export class PrismaReporteRepository implements ReporteRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
-  async create(data: CreateNovedadData): Promise<NovedadRaw> {
-    const novedad = await this.prisma.$transaction(async (tx) => {
-      // Garantiza que la parcela exista antes de crear la novedad.
+  async create(data: CreateReporteData): Promise<ReporteRaw> {
+    const reporte = await this.prisma.$transaction(async (tx) => {
+      // Garantiza que la parcela exista antes de crear el reporte.
       await tx.parcela.findUniqueOrThrow({ where: { id: data.parcelaId } });
 
-      const created = await tx.novedadParcela.create({
+      const created = await tx.reporte.create({
         data: {
           parcelaId: data.parcelaId,
           etapaId: data.etapaId ?? null,
           descripcion: data.descripcion ?? null,
-          detalles: data.imagenIds.length
+          imagenes: data.imagenIds.length
             ? {
                 create: data.imagenIds.map((imagenLocalId) => ({
                   imagenLocalId,
@@ -54,7 +54,7 @@ export class PrismaNovedadRepository implements NovedadRepository {
               }
             : undefined,
         },
-        include: novedadInclude,
+        include: reporteInclude,
       });
 
       // El cambio de etapa es opcional; si viene, avanza la etapa actual.
@@ -68,41 +68,41 @@ export class PrismaNovedadRepository implements NovedadRepository {
       return created;
     });
 
-    return this.toNovedadRaw(novedad);
+    return this.toReporteRaw(reporte);
   }
 
-  async findByParcela(parcelaId: string): Promise<NovedadRaw[]> {
-    const records = await this.prisma.novedadParcela.findMany({
+  async findByParcela(parcelaId: string): Promise<ReporteRaw[]> {
+    const records = await this.prisma.reporte.findMany({
       where: { parcelaId },
       orderBy: { createdAt: "desc" },
-      include: novedadInclude,
+      include: reporteInclude,
     });
 
-    return records.map((r) => this.toNovedadRaw(r));
+    return records.map((r) => this.toReporteRaw(r));
   }
 
   async findMany(
-    params: ListNovedadesParams
-  ): Promise<PaginatedResult<NovedadListItemRaw>> {
+    params: ListReportesParams
+  ): Promise<PaginatedResult<ReporteListItemRaw>> {
     const { page, limit, parcelaId } = params;
     const skip = (page - 1) * limit;
 
-    const where: Prisma.NovedadParcelaWhereInput = {};
+    const where: Prisma.ReporteWhereInput = {};
     if (parcelaId) where.parcelaId = parcelaId;
 
     const [records, total] = await this.prisma.$transaction([
-      this.prisma.novedadParcela.findMany({
+      this.prisma.reporte.findMany({
         where,
         skip,
         take: limit,
         orderBy: { createdAt: "desc" },
-        include: novedadListInclude,
+        include: reporteListInclude,
       }),
-      this.prisma.novedadParcela.count({ where }),
+      this.prisma.reporte.count({ where }),
     ]);
 
-    const data: NovedadListItemRaw[] = records.map((r) => ({
-      ...this.toNovedadRaw(r),
+    const data: ReporteListItemRaw[] = records.map((r) => ({
+      ...this.toReporteRaw(r),
       parcela: {
         id: r.parcela.id,
         nombre: r.parcela.versionActual?.nombre ?? "",
@@ -112,7 +112,7 @@ export class PrismaNovedadRepository implements NovedadRepository {
     return buildPaginatedResult(data, total, params);
   }
 
-  private toNovedadRaw(record: NovedadWithRelations): NovedadRaw {
+  private toReporteRaw(record: ReporteWithRelations): ReporteRaw {
     return {
       id: record.id,
       descripcion: record.descripcion,
@@ -124,10 +124,7 @@ export class PrismaNovedadRepository implements NovedadRepository {
             orden: record.etapa.orden,
           }
         : null,
-      imagenes: record.detalles.flatMap((det) => {
-        const imagenId = det.imagenLocalId ?? det.imagenAwsId;
-        return imagenId ? [{ imagenId }] : [];
-      }),
+      imagenes: record.imagenes.map((im) => ({ imagenId: im.imagenLocalId })),
     };
   }
 }

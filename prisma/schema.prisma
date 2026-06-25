@@ -167,8 +167,8 @@ model Etapa {
   orden           Int
   createdAt       DateTime @default(now()) @map("created_at")
 
-  parcelasActuales Parcela[]        @relation("EtapaActual")
-  novedades        NovedadParcela[]
+  parcelasActuales Parcela[] @relation("EtapaActual")
+  reportes         Reporte[]
 
   @@map("etapas")
 }
@@ -188,7 +188,8 @@ model Parcela {
   versionActual VersionParcela? @relation("VersionActual", fields: [versionActualId], references: [id], onDelete: SetNull)
 
   versiones     VersionParcela[] @relation("ParcelaVersiones")
-  novedades     NovedadParcela[]
+  imagenes      ImagenParcela[]
+  reportes      Reporte[]
   ventas        Venta[]
   suscripciones Suscripcion[]
 
@@ -204,10 +205,10 @@ model VersionParcela {
   id             String   @id @default(uuid())
   parcelaId      String   @map("parcela_id")
   numeroVersion  Int      @map("numero_version")
-  nombre         String   @db.VarChar(100)
-  descripcion    String?  @db.Text
-  areaHectareas  Decimal? @map("area_hectareas") @db.Decimal(8, 2)
-  precioAlquiler Decimal  @map("precio_alquiler") @db.Decimal(10, 2)
+  nombre              String   @db.VarChar(100)
+  descripcion         String?  @db.Text
+  areaMetrosCuadrados Decimal? @map("area_metros_cuadrados") @db.Decimal(12, 2)
+  precioAlquiler      Decimal  @map("precio_alquiler") @db.Decimal(10, 2)
   createdAt      DateTime @default(now()) @map("created_at")
 
   parcela         Parcela  @relation("ParcelaVersiones", fields: [parcelaId], references: [id], onDelete: Cascade)
@@ -218,6 +219,23 @@ model VersionParcela {
   @@unique([parcelaId, numeroVersion])
   @@index([parcelaId])
   @@map("version_parcelas")
+}
+
+// Imágenes fijas de la parcela (portada/galería). Son independientes de los
+// reportes de avance: cada fila relaciona la parcela con una ImagenLocal.
+model ImagenParcela {
+  id            String   @id @default(uuid())
+  parcelaId     String   @map("parcela_id")
+  imagenLocalId String   @map("imagen_local_id")
+  orden         Int      @default(0)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  parcela     Parcela     @relation(fields: [parcelaId], references: [id], onDelete: Cascade)
+  imagenLocal ImagenLocal @relation(fields: [imagenLocalId], references: [id], onDelete: Cascade)
+
+  @@index([parcelaId, orden])
+  @@index([imagenLocalId])
+  @@map("imagenes_parcela")
 }
 
 // ============================================================
@@ -334,8 +352,7 @@ model ImagenAws {
   tipo      String?  @db.VarChar(50)
   createdAt DateTime @default(now()) @map("created_at")
 
-  detalles NovedadDetalle[]
-  fincas   Finca[]
+  fincas Finca[]
 
   @@map("imagenes_aws")
 }
@@ -350,47 +367,46 @@ model ImagenLocal {
   tipo      String?  @db.VarChar(50)
   createdAt DateTime @default(now()) @map("created_at")
 
-  detalles NovedadDetalle[]
-  fincas   Finca[]
+  reportesImagenes ReporteImagen[]
+  imagenesParcela  ImagenParcela[]
+  fincas           Finca[]
 
   @@map("imagenes_locales")
 }
 
 // ============================================================
-//  NOVEDADES DE PARCELA (reportes de avance)
+//  REPORTES DE PARCELA (reportes de avance)
 // ============================================================
 
-// Cabecera de un reporte de novedad de una parcela. Tanto la etapa como
-// la descripción son opcionales; las imágenes viven en NovedadDetalle.
+// Cabecera de un reporte de avance de una parcela. Tanto la etapa como
+// la descripción son opcionales; las imágenes viven en ReporteImagen.
 // El registro más reciente (createdAt) representa el estado actual.
-model NovedadParcela {
+model Reporte {
   id          String   @id @default(uuid())
   parcelaId   String   @map("parcela_id")
   etapaId     String?  @map("etapa_id")
   descripcion String?  @db.Text
   createdAt   DateTime @default(now()) @map("created_at")
 
-  parcela  Parcela          @relation(fields: [parcelaId], references: [id], onDelete: Cascade)
-  etapa    Etapa?           @relation(fields: [etapaId], references: [id], onDelete: SetNull)
-  detalles NovedadDetalle[]
+  parcela  Parcela         @relation(fields: [parcelaId], references: [id], onDelete: Cascade)
+  etapa    Etapa?          @relation(fields: [etapaId], references: [id], onDelete: SetNull)
+  imagenes ReporteImagen[]
 
   @@index([parcelaId, createdAt])
-  @@map("novedades_parcela")
+  @@map("reportes")
 }
 
-// Detalle de una novedad: cada fila es una imagen del reporte.
-model NovedadDetalle {
+// Imagen de un reporte: cada fila relaciona el reporte con una ImagenLocal.
+model ReporteImagen {
   id            String   @id @default(uuid())
-  novedadId     String   @map("novedad_id")
-  imagenAwsId   String?  @map("imagen_aws_id")
-  imagenLocalId String?  @map("imagen_local_id")
+  reporteId     String   @map("reporte_id")
+  imagenLocalId String   @map("imagen_local_id")
   createdAt     DateTime @default(now()) @map("created_at")
 
-  novedad     NovedadParcela @relation(fields: [novedadId], references: [id], onDelete: Cascade)
-  imagenAws   ImagenAws?     @relation(fields: [imagenAwsId], references: [id], onDelete: Cascade)
-  imagenLocal ImagenLocal?   @relation(fields: [imagenLocalId], references: [id], onDelete: Cascade)
+  reporte     Reporte     @relation(fields: [reporteId], references: [id], onDelete: Cascade)
+  imagenLocal ImagenLocal @relation(fields: [imagenLocalId], references: [id], onDelete: Cascade)
 
-  @@index([novedadId])
+  @@index([reporteId])
   @@index([imagenLocalId])
-  @@map("novedad_detalle")
+  @@map("reportes_imagenes")
 }

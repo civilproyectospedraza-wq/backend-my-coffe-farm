@@ -157,7 +157,8 @@ export class PrismaFincaRepository implements FincaRepository {
           estado: p.estado,
           etapaActual: p.etapaActual?.nombre ?? null,
           nombre: p.versionActual?.nombre ?? null,
-          areaHectareas: p.versionActual?.areaHectareas?.toNumber() ?? null,
+          areaMetrosCuadrados:
+            p.versionActual?.areaMetrosCuadrados?.toNumber() ?? null,
           precioAlquiler: p.versionActual?.precioAlquiler.toNumber() ?? null,
         })),
       },

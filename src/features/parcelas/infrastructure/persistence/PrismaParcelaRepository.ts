@@ -49,6 +49,15 @@ export class PrismaParcelaRepository implements ParcelaRepository {
           estado: data.estado,
           latitud: data.latitud,
           longitud: data.longitud,
+          // Imágenes fijas de portada, en el orden recibido.
+          imagenes: data.imagenLocalIds?.length
+            ? {
+                create: data.imagenLocalIds.map((imagenLocalId, orden) => ({
+                  imagenLocalId,
+                  orden,
+                })),
+              }
+            : undefined,
         },
       });
 
@@ -58,7 +67,7 @@ export class PrismaParcelaRepository implements ParcelaRepository {
           numeroVersion: 1,
           nombre: data.version.nombre,
           descripcion: data.version.descripcion,
-          areaHectareas: data.version.areaHectareas,
+          areaMetrosCuadrados: data.version.areaMetrosCuadrados,
           precioAlquiler: data.version.precioAlquiler,
         },
       });
@@ -95,7 +104,7 @@ export class PrismaParcelaRepository implements ParcelaRepository {
       }
 
       // Cambio de etapa: solo actualiza el puntero de etapa actual. El
-      // historial de avances ahora vive en las novedades de la parcela.
+      // historial de avances ahora vive en los reportes de la parcela.
       if (
         data.etapaActualId !== undefined &&
         data.etapaActualId !== current.etapaActualId
@@ -123,16 +132,40 @@ export class PrismaParcelaRepository implements ParcelaRepository {
               data.version.descripcion !== undefined
                 ? data.version.descripcion
                 : prev?.descripcion,
-            areaHectareas:
-              data.version.areaHectareas !== undefined
-                ? data.version.areaHectareas
-                : prev?.areaHectareas,
+            areaMetrosCuadrados:
+              data.version.areaMetrosCuadrados !== undefined
+                ? data.version.areaMetrosCuadrados
+                : prev?.areaMetrosCuadrados,
             precioAlquiler:
               data.version.precioAlquiler ?? prev?.precioAlquiler ?? 0,
           },
         });
 
         parcelaData.versionActual = { connect: { id: version.id } };
+      }
+
+      // Reemplazo de portada: borra las imágenes actuales (y sus referencias
+      // ImagenLocal) y crea las nuevas en el orden recibido.
+      if (data.imagenLocalIds) {
+        const previas = await tx.imagenParcela.findMany({
+          where: { parcelaId: id },
+          select: { imagenLocalId: true },
+        });
+        await tx.imagenParcela.deleteMany({ where: { parcelaId: id } });
+        if (previas.length) {
+          await tx.imagenLocal.deleteMany({
+            where: { id: { in: previas.map((p) => p.imagenLocalId) } },
+          });
+        }
+        if (data.imagenLocalIds.length) {
+          await tx.imagenParcela.createMany({
+            data: data.imagenLocalIds.map((imagenLocalId, orden) => ({
+              parcelaId: id,
+              imagenLocalId,
+              orden,
+            })),
+          });
+        }
       }
 
       return tx.parcela.update({
@@ -200,18 +233,10 @@ export class PrismaParcelaRepository implements ParcelaRepository {
           finca: { select: { id: true, nombre: true, ubicacion: true } },
           etapaActual: { select: { nombre: true, orden: true } },
           versionActual: true,
-          // Foto del estado actual: la novedad más reciente que tenga imágenes.
-          novedades: {
-            where: { detalles: { some: {} } },
-            orderBy: { createdAt: "desc" },
-            take: 1,
-            select: {
-              detalles: {
-                orderBy: { createdAt: "asc" },
-                take: 1,
-                select: { imagenLocalId: true, imagenAwsId: true },
-              },
-            },
+          // Galería de portada: imágenes fijas de la parcela, en orden.
+          imagenes: {
+            orderBy: { orden: "asc" },
+            select: { imagenLocalId: true },
           },
         },
       }),
@@ -222,14 +247,12 @@ export class PrismaParcelaRepository implements ParcelaRepository {
       id: r.id,
       nombre: r.versionActual?.nombre ?? "",
       descripcion: r.versionActual?.descripcion ?? null,
-      areaHectareas: r.versionActual?.areaHectareas?.toNumber() ?? null,
+      areaMetrosCuadrados:
+        r.versionActual?.areaMetrosCuadrados?.toNumber() ?? null,
       precioAlquiler: r.versionActual?.precioAlquiler.toNumber() ?? 0,
       latitud: r.latitud?.toNumber() ?? null,
       longitud: r.longitud?.toNumber() ?? null,
-      imagenActualId:
-        r.novedades[0]?.detalles[0]?.imagenLocalId ??
-        r.novedades[0]?.detalles[0]?.imagenAwsId ??
-        null,
+      imagenesIds: r.imagenes.map((img) => img.imagenLocalId),
       finca: r.finca,
       etapaActual: r.etapaActual,
     }));
@@ -260,15 +283,20 @@ export class PrismaParcelaRepository implements ParcelaRepository {
         },
         etapaActual: { select: { nombre: true, orden: true } },
         versionActual: true,
-        // Historia de novedades (reportes de avance), de la más reciente
-        // a la más antigua.
-        novedades: {
+        // Galería de portada: imágenes fijas de la parcela, en orden.
+        imagenes: {
+          orderBy: { orden: "asc" },
+          select: { imagenLocalId: true, createdAt: true },
+        },
+        // Historia de reportes (reportes de avance), del más reciente
+        // al más antiguo.
+        reportes: {
           orderBy: { createdAt: "desc" },
           include: {
             etapa: { select: { nombre: true, orden: true } },
-            detalles: {
+            imagenes: {
               orderBy: { createdAt: "asc" },
-              select: { imagenLocalId: true, imagenAwsId: true },
+              select: { imagenLocalId: true },
             },
           },
         },
@@ -279,23 +307,15 @@ export class PrismaParcelaRepository implements ParcelaRepository {
       return null;
     }
 
-    // Imagen actual: primera imagen de la novedad más reciente que tenga.
-    const novedadConImagen = parcela.novedades.find(
-      (n) => n.detalles.length > 0
-    );
-
     return {
       id: parcela.id,
       nombre: parcela.versionActual?.nombre ?? "",
       descripcion: parcela.versionActual?.descripcion ?? null,
-      areaHectareas: parcela.versionActual?.areaHectareas?.toNumber() ?? null,
+      areaMetrosCuadrados:
+        parcela.versionActual?.areaMetrosCuadrados?.toNumber() ?? null,
       precioAlquiler: parcela.versionActual?.precioAlquiler.toNumber() ?? 0,
       latitud: parcela.latitud?.toNumber() ?? null,
       longitud: parcela.longitud?.toNumber() ?? null,
-      imagenActualId:
-        novedadConImagen?.detalles[0]?.imagenLocalId ??
-        novedadConImagen?.detalles[0]?.imagenAwsId ??
-        null,
       finca: {
         id: parcela.finca.id,
         nombre: parcela.finca.nombre,
@@ -309,24 +329,18 @@ export class PrismaParcelaRepository implements ParcelaRepository {
         imagenId: parcela.finca.imagenLocalId ?? parcela.finca.imagenId,
       },
       etapaActual: parcela.etapaActual,
-      // Galería plana: todas las imágenes de todas las novedades.
-      galeria: parcela.novedades.flatMap((nov) =>
-        nov.detalles.flatMap((det) => {
-          const imagenId = det.imagenLocalId ?? det.imagenAwsId;
-          return imagenId
-            ? [{ imagenId, titulo: nov.descripcion, fecha: nov.createdAt }]
-            : [];
-        })
-      ),
-      // Historia de novedades para mostrar al cliente como "últimos reportes".
-      historialNovedades: parcela.novedades.map((nov) => ({
-        etapa: nov.etapa,
-        fecha: nov.createdAt,
-        descripcion: nov.descripcion,
-        imagenes: nov.detalles.flatMap((det) => {
-          const imagenId = det.imagenLocalId ?? det.imagenAwsId;
-          return imagenId ? [{ imagenId }] : [];
-        }),
+      // Galería de portada: imágenes fijas de la parcela, en orden.
+      galeria: parcela.imagenes.map((img) => ({
+        imagenId: img.imagenLocalId,
+        titulo: null,
+        fecha: img.createdAt,
+      })),
+      // Historia de reportes para mostrar al cliente como "últimos reportes".
+      historialReportes: parcela.reportes.map((rep) => ({
+        etapa: rep.etapa,
+        fecha: rep.createdAt,
+        descripcion: rep.descripcion,
+        imagenes: rep.imagenes.map((img) => ({ imagenId: img.imagenLocalId })),
       })),
     };
   }
@@ -356,8 +370,8 @@ export class PrismaParcelaRepository implements ParcelaRepository {
             numeroVersion: record.versionActual.numeroVersion,
             nombre: record.versionActual.nombre,
             descripcion: record.versionActual.descripcion,
-            areaHectareas:
-              record.versionActual.areaHectareas?.toNumber() ?? null,
+            areaMetrosCuadrados:
+              record.versionActual.areaMetrosCuadrados?.toNumber() ?? null,
             precioAlquiler: record.versionActual.precioAlquiler.toNumber(),
           }
         : null,

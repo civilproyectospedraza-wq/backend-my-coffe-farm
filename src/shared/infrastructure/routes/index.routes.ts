@@ -2,10 +2,10 @@ import { Router } from "express";
 import { authRoutes } from "@features/auth/infrastructure/routes/auth.routes";
 import { etapasRoutes } from "@features/etapas/infrastructure/routes/etapas.routes";
 import { fincasRoutes } from "@features/fincas/infrastructure/routes/fincas.routes";
-import { novedadesRoutes } from "@features/novedades/infrastructure/routes/novedades.routes";
 import { parcelasRoutes } from "@features/parcelas/infrastructure/routes/parcelas.routes";
 import { publicParcelasRoutes } from "@features/parcelas/infrastructure/routes/public-parcelas.routes";
 import { propietariosRoutes } from "@features/propietarios/infrastructure/routes/propietarios.routes";
+import { reportesRoutes } from "@features/reportes/infrastructure/routes/reportes.routes";
 import { ubicacionesRoutes } from "@features/ubicaciones/infrastructure/routes/ubicaciones.routes";
 import { ventasRoutes } from "@features/ventas/infrastructure/routes/ventas.routes";
 
@@ -18,9 +18,9 @@ export const apiRoutes = Router();
 apiRoutes.use("/auth", authRoutes);
 apiRoutes.use("/etapas", etapasRoutes);
 apiRoutes.use("/fincas", fincasRoutes);
-apiRoutes.use("/novedades", novedadesRoutes);
 apiRoutes.use("/parcelas", parcelasRoutes);
 apiRoutes.use("/propietarios", propietariosRoutes);
+apiRoutes.use("/reportes", reportesRoutes);
 apiRoutes.use("/ubicaciones", ubicacionesRoutes);
 apiRoutes.use("/ventas", ventasRoutes);
 

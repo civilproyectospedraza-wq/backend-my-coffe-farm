@@ -32,10 +32,7 @@ export class GetCatalogParcelaDetailUseCase {
       return url;
     };
 
-    const [imagenActual, fincaImagen] = await Promise.all([
-      resolveUrl(raw.imagenActualId),
-      resolveUrl(raw.finca.imagenId),
-    ]);
+    const fincaImagen = await resolveUrl(raw.finca.imagenId);
 
     const galeria = await Promise.all(
       raw.galeria.map(async (item) => ({
@@ -45,13 +42,13 @@ export class GetCatalogParcelaDetailUseCase {
       }))
     );
 
-    const historialNovedades = await Promise.all(
-      raw.historialNovedades.map(async (nov) => ({
-        etapa: nov.etapa,
-        fecha: nov.fecha.toISOString(),
-        ...(nov.descripcion ? { descripcion: nov.descripcion } : {}),
+    const historialReportes = await Promise.all(
+      raw.historialReportes.map(async (rep) => ({
+        etapa: rep.etapa,
+        fecha: rep.fecha.toISOString(),
+        ...(rep.descripcion ? { descripcion: rep.descripcion } : {}),
         imagenes: (
-          await Promise.all(nov.imagenes.map((im) => resolveUrl(im.imagenId)))
+          await Promise.all(rep.imagenes.map((im) => resolveUrl(im.imagenId)))
         )
           .filter((url): url is string => url !== null)
           .map((url) => ({ url })),
@@ -62,10 +59,9 @@ export class GetCatalogParcelaDetailUseCase {
       id: raw.id,
       nombre: raw.nombre,
       descripcion: raw.descripcion,
-      areaHectareas: raw.areaHectareas,
+      areaMetrosCuadrados: raw.areaMetrosCuadrados,
       precioAlquiler: raw.precioAlquiler,
       geolocalizacion: buildGeolocalizacion(raw.latitud, raw.longitud),
-      imagenActual,
       finca: {
         id: raw.finca.id,
         nombre: raw.finca.nombre,
@@ -82,7 +78,7 @@ export class GetCatalogParcelaDetailUseCase {
       },
       etapaActual: raw.etapaActual,
       galeria,
-      historialNovedades,
+      historialReportes,
     };
   }
 }

@@ -23,12 +23,12 @@ export class ListCatalogParcelasUseCase {
         id: raw.id,
         nombre: raw.nombre,
         descripcion: raw.descripcion,
-        areaHectareas: raw.areaHectareas,
+        areaMetrosCuadrados: raw.areaMetrosCuadrados,
         precioAlquiler: raw.precioAlquiler,
         geolocalizacion: buildGeolocalizacion(raw.latitud, raw.longitud),
-        imagenActual: raw.imagenActualId
-          ? await this.imageStorage.getPresignedUrl(raw.imagenActualId)
-          : null,
+        imagenes: await Promise.all(
+          raw.imagenesIds.map((id) => this.imageStorage.getPresignedUrl(id))
+        ),
         finca: raw.finca,
         etapaActual: raw.etapaActual,
       }))

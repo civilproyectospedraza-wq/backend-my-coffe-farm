@@ -5,7 +5,7 @@ export interface ParcelaVersion {
   numeroVersion: number;
   nombre: string;
   descripcion: string | null;
-  areaHectareas: number | null;
+  areaMetrosCuadrados: number | null;
   precioAlquiler: number;
 }
 

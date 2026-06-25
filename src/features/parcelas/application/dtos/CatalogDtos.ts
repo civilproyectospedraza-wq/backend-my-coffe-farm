@@ -31,10 +31,10 @@ export interface CatalogParcela {
   id: string;
   nombre: string;
   descripcion: string | null;
-  areaHectareas: number | null;
+  areaMetrosCuadrados: number | null;
   precioAlquiler: number;
   geolocalizacion: Geolocalizacion | null;
-  imagenActual: string | null;
+  imagenes: string[];
   finca: { id: string; nombre: string; ubicacion: string };
   etapaActual: { nombre: string; orden: number } | null;
 }
@@ -45,8 +45,8 @@ export interface CatalogGaleriaItem {
   fecha?: string;
 }
 
-export interface CatalogHistorialNovedad {
-  // La etapa es opcional: una novedad puede no implicar cambio de etapa.
+export interface CatalogHistorialReporte {
+  // La etapa es opcional: un reporte puede no implicar cambio de etapa.
   etapa: { nombre: string; orden: number } | null;
   fecha: string;
   descripcion?: string;
@@ -57,10 +57,9 @@ export interface CatalogParcelaDetail {
   id: string;
   nombre: string;
   descripcion: string | null;
-  areaHectareas: number | null;
+  areaMetrosCuadrados: number | null;
   precioAlquiler: number;
   geolocalizacion: Geolocalizacion | null;
-  imagenActual: string | null;
   finca: {
     id: string;
     nombre: string;
@@ -74,7 +73,7 @@ export interface CatalogParcelaDetail {
   };
   etapaActual: { nombre: string; orden: number } | null;
   galeria: CatalogGaleriaItem[];
-  historialNovedades: CatalogHistorialNovedad[];
+  historialReportes: CatalogHistorialReporte[];
 }
 
 // ---- Variantes crudas (devueltas por el repositorio) ----
@@ -83,11 +82,11 @@ export interface CatalogParcelaRaw {
   id: string;
   nombre: string;
   descripcion: string | null;
-  areaHectareas: number | null;
+  areaMetrosCuadrados: number | null;
   precioAlquiler: number;
   latitud: number | null;
   longitud: number | null;
-  imagenActualId: string | null;
+  imagenesIds: string[];
   finca: { id: string; nombre: string; ubicacion: string };
   etapaActual: { nombre: string; orden: number } | null;
 }
@@ -96,11 +95,10 @@ export interface CatalogParcelaDetailRaw {
   id: string;
   nombre: string;
   descripcion: string | null;
-  areaHectareas: number | null;
+  areaMetrosCuadrados: number | null;
   precioAlquiler: number;
   latitud: number | null;
   longitud: number | null;
-  imagenActualId: string | null;
   finca: {
     id: string;
     nombre: string;
@@ -115,7 +113,7 @@ export interface CatalogParcelaDetailRaw {
   };
   etapaActual: { nombre: string; orden: number } | null;
   galeria: Array<{ imagenId: string; titulo: string | null; fecha: Date }>;
-  historialNovedades: Array<{
+  historialReportes: Array<{
     etapa: { nombre: string; orden: number } | null;
     fecha: Date;
     descripcion: string | null;
