@@ -10,10 +10,6 @@ export const createVentaSchema = z.object({
     email: z.string().email("Email inválido").max(100),
     telefono: z.string().max(20).nullable().optional(),
     direccion: z.string().nullable().optional(),
-    tipoIdentificacion: z
-      .enum(["CC", "CE", "TI", "PA", "NIT"])
-      .nullable()
-      .optional(),
     identificacion: z.string().max(30).nullable().optional(),
   }),
 });

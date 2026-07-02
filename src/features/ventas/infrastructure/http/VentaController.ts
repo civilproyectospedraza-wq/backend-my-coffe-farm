@@ -39,7 +39,6 @@ export class VentaController {
           email: data.comprador.email,
           telefono: data.comprador.telefono ?? null,
           direccion: data.comprador.direccion ?? null,
-          tipoIdentificacion: data.comprador.tipoIdentificacion ?? null,
           identificacion: data.comprador.identificacion ?? null,
         },
         // El comprador es anónimo; si un usuario autenticado registra la venta

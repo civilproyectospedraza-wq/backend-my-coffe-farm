@@ -78,6 +78,9 @@ model User {
   ventasCreadas        Venta[]
   suscripcionesCreadas Suscripcion[]
 
+  tarifasMetrajeCreadas        TarifaMetrajeParcela[]
+  tarifasMetrajeVersionCreadas TarifaMetrajeParcelaVersion[]
+
   @@map("users")
 }
 
@@ -202,22 +205,24 @@ model Parcela {
 // Snapshot inmutable de los datos de una parcela en un momento dado.
 // Las suscripciones se atan a una versión para preservar precio y datos.
 model VersionParcela {
-  id             String   @id @default(uuid())
-  parcelaId      String   @map("parcela_id")
-  numeroVersion  Int      @map("numero_version")
-  nombre              String   @db.VarChar(100)
-  descripcion         String?  @db.Text
-  areaMetrosCuadrados Decimal? @map("area_metros_cuadrados") @db.Decimal(12, 2)
-  precioAlquiler      Decimal  @map("precio_alquiler") @db.Decimal(10, 2)
-  createdAt      DateTime @default(now()) @map("created_at")
+  id              String   @id @default(uuid())
+  parcelaId       String   @map("parcela_id")
+  numeroVersion   Int      @map("numero_version")
+  nombre          String   @db.VarChar(100)
+  descripcion     String?  @db.Text
+  tarifaMetrajeId String?  @map("tarifa_metraje_id")
+  precioAlquiler  Decimal  @map("precio_alquiler") @db.Decimal(10, 2)
+  createdAt       DateTime @default(now()) @map("created_at")
 
-  parcela         Parcela  @relation("ParcelaVersiones", fields: [parcelaId], references: [id], onDelete: Cascade)
+  parcela         Parcela               @relation("ParcelaVersiones", fields: [parcelaId], references: [id], onDelete: Cascade)
   // Back-relation del puntero Parcela.versionActual.
-  parcelaActualDe Parcela? @relation("VersionActual")
+  parcelaActualDe Parcela?              @relation("VersionActual")
+  tarifaMetraje   TarifaMetrajeParcela? @relation(fields: [tarifaMetrajeId], references: [id], onDelete: SetNull)
   ventas          Venta[]
 
   @@unique([parcelaId, numeroVersion])
   @@index([parcelaId])
+  @@index([tarifaMetrajeId])
   @@map("version_parcelas")
 }
 
@@ -239,6 +244,47 @@ model ImagenParcela {
 }
 
 // ============================================================
+//  TARIFAS DE METRAJE DE PARCELAS
+// ============================================================
+
+// Catálogo de tarifas por metraje. Cada tarifa apunta a su versión actual
+// (versionId) y conserva el historial completo en `versiones`. No se actualiza
+// el valor: se crean versiones nuevas y se reasigna el puntero a la actual.
+model TarifaMetrajeParcela {
+  id                    String   @id @default(uuid())
+  medidaMetrosCuadrados Decimal  @map("medida_metros_cuadrados") @db.Decimal(12, 2)
+  versionId             String?  @unique @map("version_id")
+  createdAt             DateTime @default(now()) @map("created_at")
+  createdBy             String?  @map("created_by")
+
+  versionActual    TarifaMetrajeParcelaVersion?  @relation("TarifaMetrajeVersionActual", fields: [versionId], references: [id], onDelete: SetNull)
+  creadoPor        User?                         @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  versiones        TarifaMetrajeParcelaVersion[] @relation("TarifaMetrajeVersiones")
+  versionesParcela VersionParcela[]
+  ventas           Venta[]
+
+  @@map("tarifas_metraje_parcelas")
+}
+
+// Snapshot inmutable del valor de una tarifa de metraje en un momento dado.
+model TarifaMetrajeParcelaVersion {
+  id             String   @id @default(uuid())
+  tarifaMedidaId String   @map("tarifa_medida_id")
+  valor          Decimal  @db.Decimal(10, 2)
+  produccionKg   Decimal  @map("produccion_kg") @db.Decimal(12, 2)
+  createdAt      DateTime @default(now()) @map("created_at")
+  createdBy      String?  @map("created_by")
+
+  tarifa         TarifaMetrajeParcela  @relation("TarifaMetrajeVersiones", fields: [tarifaMedidaId], references: [id], onDelete: Cascade)
+  // Back-relation del puntero TarifaMetrajeParcela.versionActual.
+  tarifaActualDe TarifaMetrajeParcela? @relation("TarifaMetrajeVersionActual")
+  creadoPor      User?                 @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([tarifaMedidaId])
+  @@map("tarifas_metraje_parcelas_version")
+}
+
+// ============================================================
 //  VENTAS, SUSCRIPCIONES Y FACTURACIÓN
 // ============================================================
 
@@ -251,6 +297,7 @@ model Venta {
   versionParcelaId String      @map("version_parcela_id")
   parcelaId        String      @map("parcela_id")
   clienteId        String?     @map("cliente_id") // se llena al completar el pago
+  tarifaMetrajeId  String?     @map("tarifa_metraje_id")
   valor            Decimal     @db.Decimal(10, 2)
   estado           EstadoVenta @default(pendiente)
   suscripcionId    String?     @unique @map("suscripcion_id")
@@ -258,10 +305,9 @@ model Venta {
   // Datos del comprador capturados al crear la venta.
   clienteNombre             String              @map("cliente_nombre") @db.VarChar(150)
   clienteEmail              String              @map("cliente_email") @db.VarChar(100)
-  clienteTelefono           String?             @map("cliente_telefono") @db.VarChar(20)
-  clienteDireccion          String?             @map("cliente_direccion") @db.Text
-  clienteTipoIdentificacion TipoIdentificacion? @map("cliente_tipo_identificacion")
-  clienteIdentificacion     String?             @map("cliente_identificacion") @db.VarChar(30)
+  clienteTelefono       String? @map("cliente_telefono") @db.VarChar(20)
+  clienteDireccion      String? @map("cliente_direccion") @db.Text
+  clienteIdentificacion String? @map("cliente_identificacion") @db.VarChar(30)
 
   // Stripe: id de la sesión de Checkout para correlacionar el webhook.
   stripeSessionId String? @unique @map("stripe_session_id")
@@ -270,17 +316,19 @@ model Venta {
   // Usuario que registró la venta; null cuando la inicia un cliente anónimo.
   createdBy String?  @map("created_by")
 
-  versionParcela      VersionParcela      @relation(fields: [versionParcelaId], references: [id], onDelete: Restrict)
-  parcela             Parcela             @relation(fields: [parcelaId], references: [id], onDelete: Restrict)
-  cliente             Cliente?            @relation(fields: [clienteId], references: [id], onDelete: Restrict)
-  suscripcion         Suscripcion?        @relation(fields: [suscripcionId], references: [id], onDelete: SetNull)
-  creadoPor           User?               @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  versionParcela      VersionParcela        @relation(fields: [versionParcelaId], references: [id], onDelete: Restrict)
+  parcela             Parcela               @relation(fields: [parcelaId], references: [id], onDelete: Restrict)
+  cliente             Cliente?              @relation(fields: [clienteId], references: [id], onDelete: Restrict)
+  tarifaMetraje       TarifaMetrajeParcela? @relation(fields: [tarifaMetrajeId], references: [id], onDelete: SetNull)
+  suscripcion         Suscripcion?          @relation(fields: [suscripcionId], references: [id], onDelete: SetNull)
+  creadoPor           User?                 @relation(fields: [createdBy], references: [id], onDelete: SetNull)
   facturaciones       Facturacion[]
   transaccionesStripe TransaccionStripe[]
 
   @@index([parcelaId])
   @@index([clienteId])
   @@index([versionParcelaId])
+  @@index([tarifaMetrajeId])
   @@map("ventas")
 }
 

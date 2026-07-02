@@ -23,7 +23,10 @@ const updateParcelaUseCase = new UpdateParcelaUseCase(
   localImageService
 );
 const listParcelasUseCase = new ListParcelasUseCase(parcelaRepository);
-const getParcelaUseCase = new GetParcelaUseCase(parcelaRepository);
+const getParcelaUseCase = new GetParcelaUseCase(
+  parcelaRepository,
+  localImageService
+);
 
 export const parcelaController = new ParcelaController(
   createParcelaUseCase,

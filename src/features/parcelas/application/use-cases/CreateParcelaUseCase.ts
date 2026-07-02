@@ -43,7 +43,7 @@ export class CreateParcelaUseCase {
       version: {
         nombre: input.nombre,
         descripcion: input.descripcion,
-        areaMetrosCuadrados: input.areaMetrosCuadrados,
+        tarifaMetrajeId: input.tarifaMetrajeId,
         precioAlquiler: input.precioAlquiler,
       },
     });

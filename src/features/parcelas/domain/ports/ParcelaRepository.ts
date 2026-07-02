@@ -22,7 +22,7 @@ export interface CreateParcelaData {
   version: {
     nombre: string;
     descripcion?: string | null;
-    areaMetrosCuadrados?: number | null;
+    tarifaMetrajeId?: string | null;
     precioAlquiler: number;
   };
 }
@@ -32,14 +32,17 @@ export interface UpdateParcelaData {
   etapaActualId?: string | null;
   latitud?: number | null;
   longitud?: number | null;
-  // Si viene (aunque sea vacío), reemplaza por completo la portada de la
-  // parcela (`ImagenParcela`) con estas imágenes, en el orden recibido.
-  imagenLocalIds?: string[];
+  // Imágenes nuevas (ImagenLocal ya subidas) que se anexan al final de la
+  // galería, después del mayor `orden` actual.
+  imagenesAgregar?: string[];
+  // imagenLocalId de imágenes existentes a eliminar de la galería (junto con
+  // su ImagenLocal). El resto de la galería se conserva.
+  imagenesEliminar?: string[];
   // Si viene, se genera una nueva versión de la parcela.
   version?: {
     nombre?: string;
     descripcion?: string | null;
-    areaMetrosCuadrados?: number | null;
+    tarifaMetrajeId?: string | null;
     precioAlquiler?: number;
   };
 }

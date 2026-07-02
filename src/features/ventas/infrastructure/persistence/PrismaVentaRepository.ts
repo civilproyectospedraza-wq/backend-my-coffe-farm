@@ -11,7 +11,6 @@ import {
 import {
   DatosComprador,
   EstadoVenta,
-  TipoIdentificacion,
   Venta,
 } from "../../domain/entities/Venta";
 import {
@@ -62,7 +61,6 @@ export class PrismaVentaRepository implements VentaRepository {
           clienteEmail: data.comprador.email,
           clienteTelefono: data.comprador.telefono,
           clienteDireccion: data.comprador.direccion,
-          clienteTipoIdentificacion: data.comprador.tipoIdentificacion,
           clienteIdentificacion: data.comprador.identificacion,
         },
       });
@@ -204,7 +202,6 @@ export class PrismaVentaRepository implements VentaRepository {
           email: venta.clienteEmail,
           telefono: venta.clienteTelefono,
           direccion: venta.clienteDireccion,
-          tipoIdentificacion: venta.clienteTipoIdentificacion,
           identificacion: venta.clienteIdentificacion,
         },
       });
@@ -251,8 +248,6 @@ export class PrismaVentaRepository implements VentaRepository {
       email: record.clienteEmail,
       telefono: record.clienteTelefono,
       direccion: record.clienteDireccion,
-      tipoIdentificacion:
-        record.clienteTipoIdentificacion as TipoIdentificacion | null,
       identificacion: record.clienteIdentificacion,
     };
 

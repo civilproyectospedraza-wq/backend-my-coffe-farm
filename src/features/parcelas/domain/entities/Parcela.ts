@@ -5,6 +5,8 @@ export interface ParcelaVersion {
   numeroVersion: number;
   nombre: string;
   descripcion: string | null;
+  tarifaMetrajeId: string | null;
+  // Metraje derivado de la tarifa de metraje vinculada (medidaMetrosCuadrados).
   areaMetrosCuadrados: number | null;
   precioAlquiler: number;
 }
@@ -21,6 +23,12 @@ export interface ParcelaFinca {
   nombre: string;
 }
 
+// Imagen fija de portada de la parcela, referenciada por su ImagenLocal.
+export interface ParcelaImagen {
+  imagenLocalId: string;
+  orden: number;
+}
+
 export interface ParcelaProps {
   id: string;
   fincaId: string;
@@ -33,6 +41,8 @@ export interface ParcelaProps {
   finca: ParcelaFinca;
   etapaActual: ParcelaEtapa | null;
   versionActual: ParcelaVersion | null;
+  // Galería de portada, en orden.
+  imagenes: ParcelaImagen[];
 }
 
 export class Parcela {
@@ -47,6 +57,7 @@ export class Parcela {
   readonly finca: ParcelaFinca;
   readonly etapaActual: ParcelaEtapa | null;
   readonly versionActual: ParcelaVersion | null;
+  readonly imagenes: ParcelaImagen[];
 
   constructor(props: ParcelaProps) {
     this.id = props.id;
@@ -60,5 +71,6 @@ export class Parcela {
     this.finca = props.finca;
     this.etapaActual = props.etapaActual;
     this.versionActual = props.versionActual;
+    this.imagenes = props.imagenes;
   }
 }

@@ -86,7 +86,7 @@ export class PrismaFincaRepository implements FincaRepository {
         parcelas: {
           include: {
             etapaActual: true,
-            versionActual: true,
+            versionActual: { include: { tarifaMetraje: true } },
           },
         },
       },
@@ -158,7 +158,8 @@ export class PrismaFincaRepository implements FincaRepository {
           etapaActual: p.etapaActual?.nombre ?? null,
           nombre: p.versionActual?.nombre ?? null,
           areaMetrosCuadrados:
-            p.versionActual?.areaMetrosCuadrados?.toNumber() ?? null,
+            p.versionActual?.tarifaMetraje?.medidaMetrosCuadrados.toNumber() ??
+            null,
           precioAlquiler: p.versionActual?.precioAlquiler.toNumber() ?? null,
         })),
       },

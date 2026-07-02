@@ -1,14 +1,11 @@
 export type EstadoVenta = "pendiente" | "pagado";
 
-export type TipoIdentificacion = "CC" | "CE" | "TI" | "PA" | "NIT";
-
 // Datos del comprador capturados al crear la venta (antes de existir el Cliente).
 export interface DatosComprador {
   nombre: string;
   email: string;
   telefono: string | null;
   direccion: string | null;
-  tipoIdentificacion: TipoIdentificacion | null;
   identificacion: string | null;
 }
 

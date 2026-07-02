@@ -30,7 +30,12 @@ const parcelaInclude = {
   etapaActual: {
     select: { id: true, nombre: true, habilitadaVenta: true, orden: true },
   },
-  versionActual: true,
+  versionActual: { include: { tarifaMetraje: true } },
+  // Galería de portada: imágenes fijas de la parcela, en orden.
+  imagenes: {
+    orderBy: { orden: "asc" },
+    select: { imagenLocalId: true, orden: true },
+  },
 } satisfies Prisma.ParcelaInclude;
 
 type ParcelaWithRelations = Prisma.ParcelaGetPayload<{
@@ -67,7 +72,7 @@ export class PrismaParcelaRepository implements ParcelaRepository {
           numeroVersion: 1,
           nombre: data.version.nombre,
           descripcion: data.version.descripcion,
-          areaMetrosCuadrados: data.version.areaMetrosCuadrados,
+          tarifaMetrajeId: data.version.tarifaMetrajeId,
           precioAlquiler: data.version.precioAlquiler,
         },
       });
@@ -132,10 +137,10 @@ export class PrismaParcelaRepository implements ParcelaRepository {
               data.version.descripcion !== undefined
                 ? data.version.descripcion
                 : prev?.descripcion,
-            areaMetrosCuadrados:
-              data.version.areaMetrosCuadrados !== undefined
-                ? data.version.areaMetrosCuadrados
-                : prev?.areaMetrosCuadrados,
+            tarifaMetrajeId:
+              data.version.tarifaMetrajeId !== undefined
+                ? data.version.tarifaMetrajeId
+                : prev?.tarifaMetrajeId,
             precioAlquiler:
               data.version.precioAlquiler ?? prev?.precioAlquiler ?? 0,
           },
@@ -144,28 +149,41 @@ export class PrismaParcelaRepository implements ParcelaRepository {
         parcelaData.versionActual = { connect: { id: version.id } };
       }
 
-      // Reemplazo de portada: borra las imágenes actuales (y sus referencias
-      // ImagenLocal) y crea las nuevas en el orden recibido.
-      if (data.imagenLocalIds) {
-        const previas = await tx.imagenParcela.findMany({
-          where: { parcelaId: id },
+      // Eliminación selectiva: borra solo las imágenes indicadas (y sus
+      // ImagenLocal) que realmente pertenezcan a la parcela; el resto de la
+      // galería se conserva.
+      if (data.imagenesEliminar?.length) {
+        const existentes = await tx.imagenParcela.findMany({
+          where: {
+            parcelaId: id,
+            imagenLocalId: { in: data.imagenesEliminar },
+          },
           select: { imagenLocalId: true },
         });
-        await tx.imagenParcela.deleteMany({ where: { parcelaId: id } });
-        if (previas.length) {
-          await tx.imagenLocal.deleteMany({
-            where: { id: { in: previas.map((p) => p.imagenLocalId) } },
+        const ids = existentes.map((e) => e.imagenLocalId);
+        if (ids.length) {
+          await tx.imagenParcela.deleteMany({
+            where: { parcelaId: id, imagenLocalId: { in: ids } },
           });
+          await tx.imagenLocal.deleteMany({ where: { id: { in: ids } } });
         }
-        if (data.imagenLocalIds.length) {
-          await tx.imagenParcela.createMany({
-            data: data.imagenLocalIds.map((imagenLocalId, orden) => ({
-              parcelaId: id,
-              imagenLocalId,
-              orden,
-            })),
-          });
-        }
+      }
+
+      // Anexado: las imágenes nuevas se agregan al final, después del mayor
+      // `orden` actual (calculado tras la eliminación).
+      if (data.imagenesAgregar?.length) {
+        const max = await tx.imagenParcela.aggregate({
+          where: { parcelaId: id },
+          _max: { orden: true },
+        });
+        let orden = (max._max.orden ?? -1) + 1;
+        await tx.imagenParcela.createMany({
+          data: data.imagenesAgregar.map((imagenLocalId) => ({
+            parcelaId: id,
+            imagenLocalId,
+            orden: orden++,
+          })),
+        });
       }
 
       return tx.parcela.update({
@@ -232,7 +250,7 @@ export class PrismaParcelaRepository implements ParcelaRepository {
         include: {
           finca: { select: { id: true, nombre: true, ubicacion: true } },
           etapaActual: { select: { nombre: true, orden: true } },
-          versionActual: true,
+          versionActual: { include: { tarifaMetraje: true } },
           // Galería de portada: imágenes fijas de la parcela, en orden.
           imagenes: {
             orderBy: { orden: "asc" },
@@ -248,7 +266,8 @@ export class PrismaParcelaRepository implements ParcelaRepository {
       nombre: r.versionActual?.nombre ?? "",
       descripcion: r.versionActual?.descripcion ?? null,
       areaMetrosCuadrados:
-        r.versionActual?.areaMetrosCuadrados?.toNumber() ?? null,
+        r.versionActual?.tarifaMetraje?.medidaMetrosCuadrados.toNumber() ??
+        null,
       precioAlquiler: r.versionActual?.precioAlquiler.toNumber() ?? 0,
       latitud: r.latitud?.toNumber() ?? null,
       longitud: r.longitud?.toNumber() ?? null,
@@ -282,7 +301,7 @@ export class PrismaParcelaRepository implements ParcelaRepository {
           },
         },
         etapaActual: { select: { nombre: true, orden: true } },
-        versionActual: true,
+        versionActual: { include: { tarifaMetraje: true } },
         // Galería de portada: imágenes fijas de la parcela, en orden.
         imagenes: {
           orderBy: { orden: "asc" },
@@ -312,7 +331,8 @@ export class PrismaParcelaRepository implements ParcelaRepository {
       nombre: parcela.versionActual?.nombre ?? "",
       descripcion: parcela.versionActual?.descripcion ?? null,
       areaMetrosCuadrados:
-        parcela.versionActual?.areaMetrosCuadrados?.toNumber() ?? null,
+        parcela.versionActual?.tarifaMetraje?.medidaMetrosCuadrados.toNumber() ??
+        null,
       precioAlquiler: parcela.versionActual?.precioAlquiler.toNumber() ?? 0,
       latitud: parcela.latitud?.toNumber() ?? null,
       longitud: parcela.longitud?.toNumber() ?? null,
@@ -370,11 +390,17 @@ export class PrismaParcelaRepository implements ParcelaRepository {
             numeroVersion: record.versionActual.numeroVersion,
             nombre: record.versionActual.nombre,
             descripcion: record.versionActual.descripcion,
+            tarifaMetrajeId: record.versionActual.tarifaMetrajeId,
             areaMetrosCuadrados:
-              record.versionActual.areaMetrosCuadrados?.toNumber() ?? null,
+              record.versionActual.tarifaMetraje?.medidaMetrosCuadrados.toNumber() ??
+              null,
             precioAlquiler: record.versionActual.precioAlquiler.toNumber(),
           }
         : null,
+      imagenes: record.imagenes.map((img) => ({
+        imagenLocalId: img.imagenLocalId,
+        orden: img.orden,
+      })),
     });
   }
 }

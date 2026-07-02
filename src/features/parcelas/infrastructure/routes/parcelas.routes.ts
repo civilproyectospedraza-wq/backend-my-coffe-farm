@@ -14,5 +14,7 @@ parcelasRoutes.post("/", uploadImagenes, parcelaController.create);
 parcelasRoutes.get("/", parcelaController.list);
 parcelasRoutes.get("/:id", parcelaController.getById);
 // Actualizar también acepta `multipart/form-data`: si llegan imágenes en el
-// campo `imagenes`, reemplazan la portada de la parcela.
+// campo `imagenes`, reemplazan la portada de la parcela. Se aceptan PUT y PATCH
+// (el update es parcial).
 parcelasRoutes.put("/:id", uploadImagenes, parcelaController.update);
+parcelasRoutes.patch("/:id", uploadImagenes, parcelaController.update);

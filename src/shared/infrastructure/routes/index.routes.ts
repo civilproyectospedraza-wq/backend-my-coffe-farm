@@ -6,6 +6,7 @@ import { parcelasRoutes } from "@features/parcelas/infrastructure/routes/parcela
 import { publicParcelasRoutes } from "@features/parcelas/infrastructure/routes/public-parcelas.routes";
 import { propietariosRoutes } from "@features/propietarios/infrastructure/routes/propietarios.routes";
 import { reportesRoutes } from "@features/reportes/infrastructure/routes/reportes.routes";
+import { tarifasMetrajeRoutes } from "@features/tarifas-metraje/infrastructure/routes/tarifas-metraje.routes";
 import { ubicacionesRoutes } from "@features/ubicaciones/infrastructure/routes/ubicaciones.routes";
 import { ventasRoutes } from "@features/ventas/infrastructure/routes/ventas.routes";
 
@@ -21,6 +22,7 @@ apiRoutes.use("/fincas", fincasRoutes);
 apiRoutes.use("/parcelas", parcelasRoutes);
 apiRoutes.use("/propietarios", propietariosRoutes);
 apiRoutes.use("/reportes", reportesRoutes);
+apiRoutes.use("/tarifas-metraje", tarifasMetrajeRoutes);
 apiRoutes.use("/ubicaciones", ubicacionesRoutes);
 apiRoutes.use("/ventas", ventasRoutes);
 

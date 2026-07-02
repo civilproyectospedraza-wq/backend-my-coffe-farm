@@ -23,24 +23,26 @@ export class UpdateParcelaUseCase {
       throw new NotFoundError("Parcela no encontrada");
     }
 
-    const tieneCampos = Object.keys(input).length > 0;
-    if (!tieneCampos && imagenes.length === 0) {
+    const hayCambios =
+      Object.values(input).some((value) => value !== undefined) ||
+      imagenes.length > 0;
+    if (!hayCambios) {
       throw new BadRequestError(
         "Debes enviar al menos un campo para actualizar"
       );
     }
 
-    // Si llegan imágenes, reemplazan la portada de la parcela. Se suben
-    // primero y luego se referencian, conservando el orden recibido.
-    let imagenLocalIds: string[] | undefined;
+    // Las imágenes nuevas se anexan a la galería: se suben primero y luego se
+    // referencian, conservando el orden recibido.
+    let imagenesAgregar: string[] | undefined;
     if (imagenes.length > 0) {
-      imagenLocalIds = [];
+      imagenesAgregar = [];
       for (const imagen of imagenes) {
         const stored = await this.imageStorage.upload({
           ...imagen,
           tipo: "parcela",
         });
-        imagenLocalIds.push(stored.id);
+        imagenesAgregar.push(stored.id);
       }
     }
 
@@ -48,7 +50,7 @@ export class UpdateParcelaUseCase {
     const hasVersionChange =
       input.nombre !== undefined ||
       input.descripcion !== undefined ||
-      input.areaMetrosCuadrados !== undefined ||
+      input.tarifaMetrajeId !== undefined ||
       input.precioAlquiler !== undefined;
 
     return this.parcelaRepository.update(id, {
@@ -56,12 +58,13 @@ export class UpdateParcelaUseCase {
       etapaActualId: input.etapaActualId,
       latitud: input.latitud,
       longitud: input.longitud,
-      imagenLocalIds,
+      imagenesAgregar,
+      imagenesEliminar: input.imagenesEliminar,
       version: hasVersionChange
         ? {
             nombre: input.nombre,
             descripcion: input.descripcion,
-            areaMetrosCuadrados: input.areaMetrosCuadrados,
+            tarifaMetrajeId: input.tarifaMetrajeId,
             precioAlquiler: input.precioAlquiler,
           }
         : undefined,
