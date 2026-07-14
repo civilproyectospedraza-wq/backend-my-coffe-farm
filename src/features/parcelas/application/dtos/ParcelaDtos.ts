@@ -6,7 +6,8 @@ export interface CreateParcelaInput {
   nombre: string;
   descripcion?: string | null;
   tarifaMetrajeId?: string | null;
-  precioAlquiler: number;
+  precioVentaPublico: number;
+  precioCafetero: number;
   estado?: EstadoParcela;
   latitud?: number | null;
   longitud?: number | null;
@@ -19,7 +20,8 @@ export interface UpdateParcelaInput {
   nombre?: string;
   descripcion?: string | null;
   tarifaMetrajeId?: string | null;
-  precioAlquiler?: number;
+  precioVentaPublico?: number;
+  precioCafetero?: number;
   etapaActualId?: string | null;
   estado?: EstadoParcela;
   latitud?: number | null;

@@ -51,7 +51,8 @@ export class UpdateParcelaUseCase {
       input.nombre !== undefined ||
       input.descripcion !== undefined ||
       input.tarifaMetrajeId !== undefined ||
-      input.precioAlquiler !== undefined;
+      input.precioVentaPublico !== undefined ||
+      input.precioCafetero !== undefined;
 
     return this.parcelaRepository.update(id, {
       estado: input.estado,
@@ -65,7 +66,8 @@ export class UpdateParcelaUseCase {
             nombre: input.nombre,
             descripcion: input.descripcion,
             tarifaMetrajeId: input.tarifaMetrajeId,
-            precioAlquiler: input.precioAlquiler,
+            precioVentaPublico: input.precioVentaPublico,
+            precioCafetero: input.precioCafetero,
           }
         : undefined,
     });

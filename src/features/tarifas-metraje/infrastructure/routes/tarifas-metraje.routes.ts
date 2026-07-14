@@ -13,6 +13,11 @@ tarifasMetrajeRoutes.get("/", tarifaMetrajeController.list);
 // Debe ir antes de "/:id" para no colisionar con la validación de uuid.
 tarifasMetrajeRoutes.get("/all", tarifaMetrajeController.listAll);
 tarifasMetrajeRoutes.get("/:id", tarifaMetrajeController.getById);
+// Historial completo de versiones de la tarifa (más reciente primero).
+tarifasMetrajeRoutes.get(
+  "/:id/versiones",
+  tarifaMetrajeController.getHistorial
+);
 // Reemplazo del "actualizar": se crea una versión nueva y se asigna como actual.
 tarifasMetrajeRoutes.post(
   "/:id/versiones",

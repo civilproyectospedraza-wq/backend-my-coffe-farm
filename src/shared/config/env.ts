@@ -27,6 +27,27 @@ export const env = {
     apiUrl: required("IMAGES_API_URL", "https://mycoffeefarm.com/api-imagenes"),
     project: required("IMAGES_PROJECT", "my-coffe-farm"),
   },
+  // URLs del front usadas en los correos transaccionales.
+  app: {
+    // Enlace de login que se envía cuando la cuenta queda activa.
+    loginUrl: process.env.APP_LOGIN_URL ?? "https://mycoffeefarm.com/login",
+    // Base del enlace de activación; se le agrega `?token=...`.
+    activacionUrl:
+      process.env.APP_ACTIVACION_URL ??
+      "https://mycoffeefarm.com/activar-cuenta",
+  },
+  // Correo (Mailgun, API HTTP). Opcional al arrancar: si falta la credencial,
+  // el Mailer cae a un stub que solo registra en consola.
+  mail: {
+    mailgunApiKey: process.env.MAILGUN_API_KEY ?? "",
+    mailgunDomain: process.env.MAILGUN_DOMAIN ?? "",
+    // Base de la API según la región de la cuenta de Mailgun:
+    //   US -> https://api.mailgun.net (por defecto)  EU -> https://api.eu.mailgun.net
+    mailgunApiBase:
+      process.env.MAILGUN_API_BASE ?? "https://api.mailgun.net",
+    // Remitente mostrado, ej. "My Coffee Farm <no-reply@tu-dominio>".
+    from: process.env.MAIL_FROM ?? "My Coffee Farm <no-reply@mycoffeefarm.com>",
+  },
   // Stripe: opcional al arrancar. El gateway falla con un error claro si se usa
   // sin `secretKey`/`webhookSecret` configurados.
   stripe: {

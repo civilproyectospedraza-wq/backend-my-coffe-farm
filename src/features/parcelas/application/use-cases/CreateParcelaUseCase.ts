@@ -44,7 +44,8 @@ export class CreateParcelaUseCase {
         nombre: input.nombre,
         descripcion: input.descripcion,
         tarifaMetrajeId: input.tarifaMetrajeId,
-        precioAlquiler: input.precioAlquiler,
+        precioVentaPublico: input.precioVentaPublico,
+        precioCafetero: input.precioCafetero,
       },
     });
   }

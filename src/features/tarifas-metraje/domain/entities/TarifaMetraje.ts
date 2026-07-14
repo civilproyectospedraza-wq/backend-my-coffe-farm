@@ -1,7 +1,8 @@
 export interface TarifaMetrajeVersionProps {
   id: string;
   tarifaMedidaId: string;
-  valor: number;
+  valorVenta: number;
+  valorPropietario: number;
   produccionKg: number;
   createdAt: Date;
   createdBy: string | null;
@@ -10,7 +11,8 @@ export interface TarifaMetrajeVersionProps {
 export class TarifaMetrajeVersion {
   readonly id: string;
   readonly tarifaMedidaId: string;
-  readonly valor: number;
+  readonly valorVenta: number;
+  readonly valorPropietario: number;
   readonly produccionKg: number;
   readonly createdAt: Date;
   readonly createdBy: string | null;
@@ -18,7 +20,8 @@ export class TarifaMetrajeVersion {
   constructor(props: TarifaMetrajeVersionProps) {
     this.id = props.id;
     this.tarifaMedidaId = props.tarifaMedidaId;
-    this.valor = props.valor;
+    this.valorVenta = props.valorVenta;
+    this.valorPropietario = props.valorPropietario;
     this.produccionKg = props.produccionKg;
     this.createdAt = props.createdAt;
     this.createdBy = props.createdBy;
@@ -29,7 +32,8 @@ export interface TarifaMetrajeProps {
   id: string;
   medidaMetrosCuadrados: number;
   versionId: string | null;
-  valorActual: number | null;
+  valorVentaActual: number | null;
+  valorPropietarioActual: number | null;
   produccionKgActual: number | null;
   createdAt: Date;
   createdBy: string | null;
@@ -39,7 +43,8 @@ export class TarifaMetraje {
   readonly id: string;
   readonly medidaMetrosCuadrados: number;
   readonly versionId: string | null;
-  readonly valorActual: number | null;
+  readonly valorVentaActual: number | null;
+  readonly valorPropietarioActual: number | null;
   readonly produccionKgActual: number | null;
   readonly createdAt: Date;
   readonly createdBy: string | null;
@@ -48,7 +53,8 @@ export class TarifaMetraje {
     this.id = props.id;
     this.medidaMetrosCuadrados = props.medidaMetrosCuadrados;
     this.versionId = props.versionId;
-    this.valorActual = props.valorActual;
+    this.valorVentaActual = props.valorVentaActual;
+    this.valorPropietarioActual = props.valorPropietarioActual;
     this.produccionKgActual = props.produccionKgActual;
     this.createdAt = props.createdAt;
     this.createdBy = props.createdBy;

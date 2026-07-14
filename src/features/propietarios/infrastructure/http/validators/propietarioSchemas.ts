@@ -18,3 +18,27 @@ export const listPropietariosSchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(10),
   search: z.string().trim().min(1).optional(),
 });
+
+// Registro público: no incluye contraseña (se define al activar la cuenta).
+export const registrarPropietarioSchema = z.object({
+  nombre: z
+    .string()
+    .min(2, "El nombre debe tener al menos 2 caracteres")
+    .max(150),
+  email: z.string().email("Email inválido"),
+  telefono: z.string().max(20).nullable().optional(),
+  direccion: z.string().nullable().optional(),
+  tipoIdentificacion: z
+    .enum(["CC", "CE", "TI", "PA", "NIT"])
+    .nullable()
+    .optional(),
+  identificacion: z.string().max(30).nullable().optional(),
+});
+
+// Activación: token del correo + contraseña elegida por el propietario.
+export const activarPropietarioSchema = z.object({
+  token: z.string().min(1, "El token es obligatorio"),
+  password: z
+    .string()
+    .min(6, "La contraseña debe tener al menos 6 caracteres"),
+});

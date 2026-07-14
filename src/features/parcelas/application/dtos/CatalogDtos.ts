@@ -32,7 +32,8 @@ export interface CatalogParcela {
   nombre: string;
   descripcion: string | null;
   areaMetrosCuadrados: number | null;
-  precioAlquiler: number;
+  precioVentaPublico: number;
+  precioCafetero: number;
   geolocalizacion: Geolocalizacion | null;
   imagenes: string[];
   finca: { id: string; nombre: string; ubicacion: string };
@@ -58,7 +59,8 @@ export interface CatalogParcelaDetail {
   nombre: string;
   descripcion: string | null;
   areaMetrosCuadrados: number | null;
-  precioAlquiler: number;
+  precioVentaPublico: number;
+  precioCafetero: number;
   geolocalizacion: Geolocalizacion | null;
   finca: {
     id: string;
@@ -83,7 +85,8 @@ export interface CatalogParcelaRaw {
   nombre: string;
   descripcion: string | null;
   areaMetrosCuadrados: number | null;
-  precioAlquiler: number;
+  precioVentaPublico: number;
+  precioCafetero: number;
   latitud: number | null;
   longitud: number | null;
   imagenesIds: string[];
@@ -96,7 +99,8 @@ export interface CatalogParcelaDetailRaw {
   nombre: string;
   descripcion: string | null;
   areaMetrosCuadrados: number | null;
-  precioAlquiler: number;
+  precioVentaPublico: number;
+  precioCafetero: number;
   latitud: number | null;
   longitud: number | null;
   finca: {

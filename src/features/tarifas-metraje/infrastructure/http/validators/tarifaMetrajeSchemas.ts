@@ -4,18 +4,24 @@ export const createTarifaMetrajeSchema = z.object({
   medidaMetrosCuadrados: z.coerce
     .number({ invalid_type_error: "La medida debe ser numérica" })
     .positive("La medida debe ser mayor que 0"),
-  valor: z.coerce
-    .number({ invalid_type_error: "El valor debe ser numérico" })
-    .nonnegative("El valor no puede ser negativo"),
+  valorVenta: z.coerce
+    .number({ invalid_type_error: "El valor de venta debe ser numérico" })
+    .nonnegative("El valor de venta no puede ser negativo"),
+  valorPropietario: z.coerce
+    .number({ invalid_type_error: "El valor al propietario debe ser numérico" })
+    .nonnegative("El valor al propietario no puede ser negativo"),
   produccionKg: z.coerce
     .number({ invalid_type_error: "La producción debe ser numérica" })
     .nonnegative("La producción no puede ser negativa"),
 });
 
 export const createTarifaMetrajeVersionSchema = z.object({
-  valor: z.coerce
-    .number({ invalid_type_error: "El valor debe ser numérico" })
-    .nonnegative("El valor no puede ser negativo"),
+  valorVenta: z.coerce
+    .number({ invalid_type_error: "El valor de venta debe ser numérico" })
+    .nonnegative("El valor de venta no puede ser negativo"),
+  valorPropietario: z.coerce
+    .number({ invalid_type_error: "El valor al propietario debe ser numérico" })
+    .nonnegative("El valor al propietario no puede ser negativo"),
   produccionKg: z.coerce
     .number({ invalid_type_error: "La producción debe ser numérica" })
     .nonnegative("La producción no puede ser negativa"),

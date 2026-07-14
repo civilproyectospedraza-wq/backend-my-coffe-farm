@@ -39,7 +39,8 @@ export class PrismaTarifaMetrajeRepository implements TarifaMetrajeRepository {
       const version = await tx.tarifaMetrajeParcelaVersion.create({
         data: {
           tarifaMedidaId: tarifa.id,
-          valor: data.valor,
+          valorVenta: data.valorVenta,
+          valorPropietario: data.valorPropietario,
           produccionKg: data.produccionKg,
           createdBy: data.createdBy ?? null,
         },
@@ -94,6 +95,14 @@ export class PrismaTarifaMetrajeRepository implements TarifaMetrajeRepository {
     return records.map((r) => this.toDomain(r));
   }
 
+  async findVersions(tarifaId: string): Promise<TarifaMetrajeVersion[]> {
+    const versions = await this.prisma.tarifaMetrajeParcelaVersion.findMany({
+      where: { tarifaMedidaId: tarifaId },
+      orderBy: { createdAt: "desc" },
+    });
+    return versions.map((v) => this.toVersionDomain(v));
+  }
+
   async createVersion(
     tarifaId: string,
     data: CreateTarifaMetrajeVersionData
@@ -103,7 +112,8 @@ export class PrismaTarifaMetrajeRepository implements TarifaMetrajeRepository {
       const nueva = await tx.tarifaMetrajeParcelaVersion.create({
         data: {
           tarifaMedidaId: tarifaId,
-          valor: data.valor,
+          valorVenta: data.valorVenta,
+          valorPropietario: data.valorPropietario,
           produccionKg: data.produccionKg,
           createdBy: data.createdBy ?? null,
         },
@@ -125,7 +135,9 @@ export class PrismaTarifaMetrajeRepository implements TarifaMetrajeRepository {
       id: record.id,
       medidaMetrosCuadrados: record.medidaMetrosCuadrados.toNumber(),
       versionId: record.versionId,
-      valorActual: record.versionActual?.valor.toNumber() ?? null,
+      valorVentaActual: record.versionActual?.valorVenta.toNumber() ?? null,
+      valorPropietarioActual:
+        record.versionActual?.valorPropietario.toNumber() ?? null,
       produccionKgActual: record.versionActual?.produccionKg.toNumber() ?? null,
       createdAt: record.createdAt,
       createdBy: record.createdBy,
@@ -138,7 +150,8 @@ export class PrismaTarifaMetrajeRepository implements TarifaMetrajeRepository {
     return new TarifaMetrajeVersion({
       id: record.id,
       tarifaMedidaId: record.tarifaMedidaId,
-      valor: record.valor.toNumber(),
+      valorVenta: record.valorVenta.toNumber(),
+      valorPropietario: record.valorPropietario.toNumber(),
       produccionKg: record.produccionKg.toNumber(),
       createdAt: record.createdAt,
       createdBy: record.createdBy,

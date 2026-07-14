@@ -23,7 +23,8 @@ export interface CreateParcelaData {
     nombre: string;
     descripcion?: string | null;
     tarifaMetrajeId?: string | null;
-    precioAlquiler: number;
+    precioVentaPublico: number;
+    precioCafetero: number;
   };
 }
 
@@ -43,7 +44,8 @@ export interface UpdateParcelaData {
     nombre?: string;
     descripcion?: string | null;
     tarifaMetrajeId?: string | null;
-    precioAlquiler?: number;
+    precioVentaPublico?: number;
+    precioCafetero?: number;
   };
 }
 

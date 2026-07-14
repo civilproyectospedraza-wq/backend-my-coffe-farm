@@ -11,7 +11,12 @@ export const createParcelaSchema = z.object({
   nombre: z.string().min(1, "El nombre es obligatorio").max(100),
   descripcion: z.string().nullable().optional(),
   tarifaMetrajeId: z.string().uuid("tarifaMetrajeId debe ser un UUID válido").nullable().optional(),
-  precioAlquiler: z.coerce.number().positive("El precio debe ser mayor a 0"),
+  precioVentaPublico: z.coerce
+    .number()
+    .positive("El precio de venta al público debe ser mayor a 0"),
+  precioCafetero: z.coerce
+    .number()
+    .positive("El precio cafetero debe ser mayor a 0"),
   estado: z.enum(["disponible", "ocupada"]).optional(),
   latitud: latitud.nullable().optional(),
   longitud: longitud.nullable().optional(),
@@ -28,7 +33,8 @@ export const updateParcelaSchema = z.object({
   nombre: z.string().min(1).max(100).optional(),
   descripcion: z.string().nullable().optional(),
   tarifaMetrajeId: z.string().uuid("tarifaMetrajeId debe ser un UUID válido").nullable().optional(),
-  precioAlquiler: z.coerce.number().positive().optional(),
+  precioVentaPublico: z.coerce.number().positive().optional(),
+  precioCafetero: z.coerce.number().positive().optional(),
   etapaActualId: z.string().uuid().nullable().optional(),
   estado: z.enum(["disponible", "ocupada"]).optional(),
   latitud: latitud.nullable().optional(),

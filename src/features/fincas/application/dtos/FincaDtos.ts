@@ -77,7 +77,8 @@ export interface ResumenFinca {
       etapaActual: string | null;
       nombre: string | null;
       areaMetrosCuadrados: number | null;
-      precioAlquiler: number | null;
+      precioVentaPublico: number | null;
+      precioCafetero: number | null;
     }>;
   };
   alquileres: {

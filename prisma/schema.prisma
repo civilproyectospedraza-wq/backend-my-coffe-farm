@@ -30,9 +30,23 @@ enum EstadoParcela {
   ocupada
 }
 
+// Estado de la cuenta de un propietario registrado desde la landing pública.
+// Nace `pendiente` (sin usuario) y pasa a `activo` cuando confirma su correo.
+enum EstadoPropietario {
+  pendiente
+  activo
+}
+
 enum EstadoVenta {
   pendiente
   pagado
+}
+
+// Estado de una solicitud de registro de caficultor hecha desde la landing.
+enum EstadoRegistroCaficultor {
+  pendiente
+  aprobado
+  rechazado
 }
 
 // ============================================================
@@ -120,16 +134,53 @@ model Cliente {
 }
 
 model Propietario {
-  id        String   @id @default(uuid())
-  usuarioId String   @unique @map("usuario_id")
-  personaId String   @unique @map("persona_id")
-  createdAt DateTime @default(now()) @map("created_at")
+  id        String            @id @default(uuid())
+  // Nullable: en el registro público el propietario nace `pendiente` sin
+  // usuario; el User (rol Propietario) se crea al activar la cuenta.
+  usuarioId String?           @unique @map("usuario_id")
+  personaId String            @unique @map("persona_id")
+  estado    EstadoPropietario @default(pendiente)
+  // Token de un solo uso para activar la cuenta desde el enlace del correo.
+  tokenActivacion String?     @unique @map("token_activacion")
+  activadoAt      DateTime?   @map("activado_at")
+  createdAt       DateTime    @default(now()) @map("created_at")
 
-  usuario User    @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuario User?   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   persona Persona @relation(fields: [personaId], references: [id], onDelete: Restrict)
   fincas  Finca[]
 
   @@map("propietarios")
+}
+
+// ============================================================
+//  REGISTRO DE CAFICULTORES (solicitudes desde la landing)
+// ============================================================
+
+// Solicitud de registro de un caficultor (dueño de finca) hecha desde la
+// landing. Nace en estado `pendiente` con los datos capturados inline. Cuando
+// un administrador la aprueba se crean User + Persona + Propietario (la
+// contraseña es su número de documento) y la solicitud queda `aprobado`.
+model RegistroCaficultor {
+  id                 String                   @id @default(uuid())
+  nombre             String                   @db.VarChar(150)
+  email              String                   @db.VarChar(100)
+  telefono           String?                  @db.VarChar(20)
+  direccion          String?                  @db.Text
+  tipoIdentificacion TipoIdentificacion       @map("tipo_identificacion")
+  identificacion     String                   @db.VarChar(30)
+  estado             EstadoRegistroCaficultor @default(pendiente)
+  motivoRechazo      String?                  @map("motivo_rechazo") @db.Text
+  // Propietario creado al aprobar (traza; sin FK para no acoplar la tabla).
+  propietarioId      String?                  @map("propietario_id")
+  // Usuario administrador que revisó la solicitud.
+  revisadoPor        String?                  @map("revisado_por")
+  revisadoAt         DateTime?                @map("revisado_at")
+  createdAt          DateTime                 @default(now()) @map("created_at")
+  updatedAt          DateTime                 @updatedAt @map("updated_at")
+
+  @@index([estado])
+  @@index([email])
+  @@map("registro_caficultores")
 }
 
 // ============================================================
@@ -211,7 +262,8 @@ model VersionParcela {
   nombre          String   @db.VarChar(100)
   descripcion     String?  @db.Text
   tarifaMetrajeId String?  @map("tarifa_metraje_id")
-  precioAlquiler  Decimal  @map("precio_alquiler") @db.Decimal(10, 2)
+  precioVentaPublico Decimal @map("precio_venta_publico") @db.Decimal(10, 2)
+  precioCafetero     Decimal @map("precio_cafetero") @db.Decimal(10, 2)
   createdAt       DateTime @default(now()) @map("created_at")
 
   parcela         Parcela               @relation("ParcelaVersiones", fields: [parcelaId], references: [id], onDelete: Cascade)
@@ -268,10 +320,11 @@ model TarifaMetrajeParcela {
 
 // Snapshot inmutable del valor de una tarifa de metraje en un momento dado.
 model TarifaMetrajeParcelaVersion {
-  id             String   @id @default(uuid())
-  tarifaMedidaId String   @map("tarifa_medida_id")
-  valor          Decimal  @db.Decimal(10, 2)
-  produccionKg   Decimal  @map("produccion_kg") @db.Decimal(12, 2)
+  id               String   @id @default(uuid())
+  tarifaMedidaId   String   @map("tarifa_medida_id")
+  valorVenta       Decimal  @map("valor_venta") @db.Decimal(10, 2)
+  valorPropietario Decimal  @map("valor_propietario") @db.Decimal(10, 2)
+  produccionKg     Decimal  @map("produccion_kg") @db.Decimal(12, 2)
   createdAt      DateTime @default(now()) @map("created_at")
   createdBy      String?  @map("created_by")
 

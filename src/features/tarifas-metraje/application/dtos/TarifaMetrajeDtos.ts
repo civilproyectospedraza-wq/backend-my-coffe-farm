@@ -1,12 +1,14 @@
 export interface CreateTarifaMetrajeInput {
   medidaMetrosCuadrados: number;
-  valor: number;
+  valorVenta: number;
+  valorPropietario: number;
   produccionKg: number;
   createdBy?: string | null;
 }
 
 export interface CreateTarifaMetrajeVersionInput {
-  valor: number;
+  valorVenta: number;
+  valorPropietario: number;
   produccionKg: number;
   createdBy?: string | null;
 }
@@ -14,4 +16,16 @@ export interface CreateTarifaMetrajeVersionInput {
 export interface ListTarifasMetrajeInput {
   page: number;
   limit: number;
+}
+
+// Cada versión del historial, marcando cuál es la que está vigente.
+export interface TarifaMetrajeVersionHistorialItem {
+  id: string;
+  tarifaMedidaId: string;
+  valorVenta: number;
+  valorPropietario: number;
+  produccionKg: number;
+  esActual: boolean;
+  createdAt: Date;
+  createdBy: string | null;
 }

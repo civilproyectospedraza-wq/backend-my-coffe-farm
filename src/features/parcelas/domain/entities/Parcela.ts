@@ -8,7 +8,8 @@ export interface ParcelaVersion {
   tarifaMetrajeId: string | null;
   // Metraje derivado de la tarifa de metraje vinculada (medidaMetrosCuadrados).
   areaMetrosCuadrados: number | null;
-  precioAlquiler: number;
+  precioVentaPublico: number;
+  precioCafetero: number;
 }
 
 export interface ParcelaEtapa {

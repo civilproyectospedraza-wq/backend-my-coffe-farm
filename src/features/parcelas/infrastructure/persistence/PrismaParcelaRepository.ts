@@ -73,7 +73,8 @@ export class PrismaParcelaRepository implements ParcelaRepository {
           nombre: data.version.nombre,
           descripcion: data.version.descripcion,
           tarifaMetrajeId: data.version.tarifaMetrajeId,
-          precioAlquiler: data.version.precioAlquiler,
+          precioVentaPublico: data.version.precioVentaPublico,
+          precioCafetero: data.version.precioCafetero,
         },
       });
 
@@ -141,8 +142,12 @@ export class PrismaParcelaRepository implements ParcelaRepository {
               data.version.tarifaMetrajeId !== undefined
                 ? data.version.tarifaMetrajeId
                 : prev?.tarifaMetrajeId,
-            precioAlquiler:
-              data.version.precioAlquiler ?? prev?.precioAlquiler ?? 0,
+            precioVentaPublico:
+              data.version.precioVentaPublico ??
+              prev?.precioVentaPublico ??
+              0,
+            precioCafetero:
+              data.version.precioCafetero ?? prev?.precioCafetero ?? 0,
           },
         });
 
@@ -268,7 +273,8 @@ export class PrismaParcelaRepository implements ParcelaRepository {
       areaMetrosCuadrados:
         r.versionActual?.tarifaMetraje?.medidaMetrosCuadrados.toNumber() ??
         null,
-      precioAlquiler: r.versionActual?.precioAlquiler.toNumber() ?? 0,
+      precioVentaPublico: r.versionActual?.precioVentaPublico.toNumber() ?? 0,
+      precioCafetero: r.versionActual?.precioCafetero.toNumber() ?? 0,
       latitud: r.latitud?.toNumber() ?? null,
       longitud: r.longitud?.toNumber() ?? null,
       imagenesIds: r.imagenes.map((img) => img.imagenLocalId),
@@ -333,7 +339,9 @@ export class PrismaParcelaRepository implements ParcelaRepository {
       areaMetrosCuadrados:
         parcela.versionActual?.tarifaMetraje?.medidaMetrosCuadrados.toNumber() ??
         null,
-      precioAlquiler: parcela.versionActual?.precioAlquiler.toNumber() ?? 0,
+      precioVentaPublico:
+        parcela.versionActual?.precioVentaPublico.toNumber() ?? 0,
+      precioCafetero: parcela.versionActual?.precioCafetero.toNumber() ?? 0,
       latitud: parcela.latitud?.toNumber() ?? null,
       longitud: parcela.longitud?.toNumber() ?? null,
       finca: {
@@ -394,7 +402,9 @@ export class PrismaParcelaRepository implements ParcelaRepository {
             areaMetrosCuadrados:
               record.versionActual.tarifaMetraje?.medidaMetrosCuadrados.toNumber() ??
               null,
-            precioAlquiler: record.versionActual.precioAlquiler.toNumber(),
+            precioVentaPublico:
+              record.versionActual.precioVentaPublico.toNumber(),
+            precioCafetero: record.versionActual.precioCafetero.toNumber(),
           }
         : null,
       imagenes: record.imagenes.map((img) => ({

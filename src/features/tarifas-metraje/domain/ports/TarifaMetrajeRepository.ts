@@ -3,13 +3,15 @@ import { TarifaMetraje, TarifaMetrajeVersion } from "../entities/TarifaMetraje";
 
 export interface CreateTarifaMetrajeData {
   medidaMetrosCuadrados: number;
-  valor: number;
+  valorVenta: number;
+  valorPropietario: number;
   produccionKg: number;
   createdBy?: string | null;
 }
 
 export interface CreateTarifaMetrajeVersionData {
-  valor: number;
+  valorVenta: number;
+  valorPropietario: number;
   produccionKg: number;
   createdBy?: string | null;
 }
@@ -26,6 +28,9 @@ export interface TarifaMetrajeRepository {
   // Todas las tarifas (sin paginar), para selectores como el de crear/editar
   // parcela. Ordenadas por medida ascendente.
   findAll(): Promise<TarifaMetraje[]>;
+  // Historial completo de versiones de una tarifa, de la más reciente a la más
+  // antigua.
+  findVersions(tarifaId: string): Promise<TarifaMetrajeVersion[]>;
   // Crea una versión nueva y la deja como versión actual de la tarifa.
   createVersion(
     tarifaId: string,

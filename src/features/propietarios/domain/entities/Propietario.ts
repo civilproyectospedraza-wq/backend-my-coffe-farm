@@ -18,27 +18,33 @@ export interface PropietarioUsuario {
   rol: Rol;
 }
 
+export type EstadoPropietario = "pendiente" | "activo";
+
 export interface PropietarioProps {
   id: string;
-  usuarioId: string;
+  // Nulo mientras la cuenta está `pendiente`: el usuario se crea al activar.
+  usuarioId: string | null;
   personaId: string;
+  estado: EstadoPropietario;
   createdAt: Date;
   persona: PropietarioPersona;
-  usuario: PropietarioUsuario;
+  usuario: PropietarioUsuario | null;
 }
 
 export class Propietario {
   readonly id: string;
-  readonly usuarioId: string;
+  readonly usuarioId: string | null;
   readonly personaId: string;
+  readonly estado: EstadoPropietario;
   readonly createdAt: Date;
   readonly persona: PropietarioPersona;
-  readonly usuario: PropietarioUsuario;
+  readonly usuario: PropietarioUsuario | null;
 
   constructor(props: PropietarioProps) {
     this.id = props.id;
     this.usuarioId = props.usuarioId;
     this.personaId = props.personaId;
+    this.estado = props.estado;
     this.createdAt = props.createdAt;
     this.persona = props.persona;
     this.usuario = props.usuario;

@@ -60,7 +60,8 @@ export class GetCatalogParcelaDetailUseCase {
       nombre: raw.nombre,
       descripcion: raw.descripcion,
       areaMetrosCuadrados: raw.areaMetrosCuadrados,
-      precioAlquiler: raw.precioAlquiler,
+      precioVentaPublico: raw.precioVentaPublico,
+      precioCafetero: raw.precioCafetero,
       geolocalizacion: buildGeolocalizacion(raw.latitud, raw.longitud),
       finca: {
         id: raw.finca.id,

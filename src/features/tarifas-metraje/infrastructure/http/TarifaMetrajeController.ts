@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { CreateTarifaMetrajeUseCase } from "../../application/use-cases/CreateTarifaMetrajeUseCase";
 import { CreateTarifaMetrajeVersionUseCase } from "../../application/use-cases/CreateTarifaMetrajeVersionUseCase";
+import { GetTarifaMetrajeHistorialUseCase } from "../../application/use-cases/GetTarifaMetrajeHistorialUseCase";
 import { GetTarifaMetrajeUseCase } from "../../application/use-cases/GetTarifaMetrajeUseCase";
 import { ListAllTarifasMetrajeUseCase } from "../../application/use-cases/ListAllTarifasMetrajeUseCase";
 import { ListTarifasMetrajeUseCase } from "../../application/use-cases/ListTarifasMetrajeUseCase";
@@ -17,7 +18,8 @@ export class TarifaMetrajeController {
     private readonly listTarifasMetrajeUseCase: ListTarifasMetrajeUseCase,
     private readonly createTarifaMetrajeVersionUseCase: CreateTarifaMetrajeVersionUseCase,
     private readonly getTarifaMetrajeUseCase: GetTarifaMetrajeUseCase,
-    private readonly listAllTarifasMetrajeUseCase: ListAllTarifasMetrajeUseCase
+    private readonly listAllTarifasMetrajeUseCase: ListAllTarifasMetrajeUseCase,
+    private readonly getTarifaMetrajeHistorialUseCase: GetTarifaMetrajeHistorialUseCase
   ) {}
 
   create = async (req: Request, res: Response, next: NextFunction) => {
@@ -57,6 +59,16 @@ export class TarifaMetrajeController {
       const { id } = tarifaMetrajeIdParamSchema.parse(req.params);
       const tarifa = await this.getTarifaMetrajeUseCase.execute(id);
       return res.status(200).json(tarifa);
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  getHistorial = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = tarifaMetrajeIdParamSchema.parse(req.params);
+      const historial = await this.getTarifaMetrajeHistorialUseCase.execute(id);
+      return res.status(200).json(historial);
     } catch (error) {
       return next(error);
     }

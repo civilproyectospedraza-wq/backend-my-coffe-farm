@@ -160,7 +160,9 @@ export class PrismaFincaRepository implements FincaRepository {
           areaMetrosCuadrados:
             p.versionActual?.tarifaMetraje?.medidaMetrosCuadrados.toNumber() ??
             null,
-          precioAlquiler: p.versionActual?.precioAlquiler.toNumber() ?? null,
+          precioVentaPublico:
+            p.versionActual?.precioVentaPublico.toNumber() ?? null,
+          precioCafetero: p.versionActual?.precioCafetero.toNumber() ?? null,
         })),
       },
       alquileres: {
