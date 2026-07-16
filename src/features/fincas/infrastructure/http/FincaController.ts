@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import { resolvePropietarioScope } from "@shared/infrastructure/http/propietarioScope";
 import { UploadImagePayload } from "../../domain/ports/ImageStorage";
 import { BuscarFincasUseCase } from "../../application/use-cases/BuscarFincasUseCase";
 import { CreateFincaUseCase } from "../../application/use-cases/CreateFincaUseCase";
@@ -74,7 +75,12 @@ export class FincaController {
   list = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const params = listFincasSchema.parse(req.query);
-      const result = await this.listFincasUseCase.execute(params);
+      // Seguridad: un propietario solo ve sus fincas (se fuerza su id del JWT).
+      const propietarioId = resolvePropietarioScope(req, params.propietarioId);
+      const result = await this.listFincasUseCase.execute({
+        ...params,
+        propietarioId,
+      });
       return res.status(200).json(result);
     } catch (error) {
       return next(error);

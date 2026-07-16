@@ -42,6 +42,7 @@ export class PrismaTarifaMetrajeRepository implements TarifaMetrajeRepository {
           valorVenta: data.valorVenta,
           valorPropietario: data.valorPropietario,
           produccionKg: data.produccionKg,
+          cantidadMinimaEntrega: data.cantidadMinimaEntrega,
           createdBy: data.createdBy ?? null,
         },
       });
@@ -115,6 +116,7 @@ export class PrismaTarifaMetrajeRepository implements TarifaMetrajeRepository {
           valorVenta: data.valorVenta,
           valorPropietario: data.valorPropietario,
           produccionKg: data.produccionKg,
+          cantidadMinimaEntrega: data.cantidadMinimaEntrega,
           createdBy: data.createdBy ?? null,
         },
       });
@@ -139,6 +141,8 @@ export class PrismaTarifaMetrajeRepository implements TarifaMetrajeRepository {
       valorPropietarioActual:
         record.versionActual?.valorPropietario.toNumber() ?? null,
       produccionKgActual: record.versionActual?.produccionKg.toNumber() ?? null,
+      cantidadMinimaEntregaActual:
+        record.versionActual?.cantidadMinimaEntrega.toNumber() ?? null,
       createdAt: record.createdAt,
       createdBy: record.createdBy,
     });
@@ -153,6 +157,7 @@ export class PrismaTarifaMetrajeRepository implements TarifaMetrajeRepository {
       valorVenta: record.valorVenta.toNumber(),
       valorPropietario: record.valorPropietario.toNumber(),
       produccionKg: record.produccionKg.toNumber(),
+      cantidadMinimaEntrega: record.cantidadMinimaEntrega.toNumber(),
       createdAt: record.createdAt,
       createdBy: record.createdBy,
     });

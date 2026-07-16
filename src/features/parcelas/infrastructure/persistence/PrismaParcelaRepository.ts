@@ -212,12 +212,14 @@ export class PrismaParcelaRepository implements ParcelaRepository {
   async findMany(
     params: ListParcelasParams
   ): Promise<PaginatedResult<Parcela>> {
-    const { page, limit, fincaId, estado } = params;
+    const { page, limit, fincaId, estado, propietarioId } = params;
     const skip = (page - 1) * limit;
 
     const where: Prisma.ParcelaWhereInput = {};
     if (fincaId) where.fincaId = fincaId;
     if (estado) where.estado = estado;
+    // Filtro por propietario a través de la finca dueña de la parcela.
+    if (propietarioId) where.finca = { propietarioId };
 
     const [records, total] = await this.prisma.$transaction([
       this.prisma.parcela.findMany({

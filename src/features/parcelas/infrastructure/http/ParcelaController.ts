@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import { resolvePropietarioScope } from "@shared/infrastructure/http/propietarioScope";
 import { UploadImagePayload } from "../../domain/ports/ImageStorage";
 import { CreateParcelaUseCase } from "../../application/use-cases/CreateParcelaUseCase";
 import { GetParcelaUseCase } from "../../application/use-cases/GetParcelaUseCase";
@@ -58,7 +59,12 @@ export class ParcelaController {
   list = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const params = listParcelasSchema.parse(req.query);
-      const result = await this.listParcelasUseCase.execute(params);
+      // Seguridad: un propietario solo ve sus parcelas (se fuerza su id del JWT).
+      const propietarioId = resolvePropietarioScope(req, params.propietarioId);
+      const result = await this.listParcelasUseCase.execute({
+        ...params,
+        propietarioId,
+      });
       return res.status(200).json(result);
     } catch (error) {
       return next(error);

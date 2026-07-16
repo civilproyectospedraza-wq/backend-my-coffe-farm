@@ -13,6 +13,11 @@ export const createTarifaMetrajeSchema = z.object({
   produccionKg: z.coerce
     .number({ invalid_type_error: "La producción debe ser numérica" })
     .nonnegative("La producción no puede ser negativa"),
+  cantidadMinimaEntrega: z.coerce
+    .number({
+      invalid_type_error: "La cantidad mínima de entrega debe ser numérica",
+    })
+    .nonnegative("La cantidad mínima de entrega no puede ser negativa"),
 });
 
 export const createTarifaMetrajeVersionSchema = z.object({
@@ -25,6 +30,11 @@ export const createTarifaMetrajeVersionSchema = z.object({
   produccionKg: z.coerce
     .number({ invalid_type_error: "La producción debe ser numérica" })
     .nonnegative("La producción no puede ser negativa"),
+  cantidadMinimaEntrega: z.coerce
+    .number({
+      invalid_type_error: "La cantidad mínima de entrega debe ser numérica",
+    })
+    .nonnegative("La cantidad mínima de entrega no puede ser negativa"),
 });
 
 export const listTarifasMetrajeSchema = z.object({

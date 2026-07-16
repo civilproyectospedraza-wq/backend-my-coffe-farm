@@ -65,6 +65,10 @@ export const listParcelasSchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(10),
   fincaId: z.string().uuid().optional(),
   estado: z.enum(["disponible", "ocupada"]).optional(),
+  // Filtro opcional por propietario (parcelas cuyas fincas le pertenecen). Para
+  // un Propietario autenticado el backend lo fuerza a su propio id; para un
+  // Administrador es opcional.
+  propietarioId: z.string().uuid().optional(),
 });
 
 export const parcelaIdParamSchema = z.object({

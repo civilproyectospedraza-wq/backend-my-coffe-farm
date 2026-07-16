@@ -4,6 +4,7 @@ export interface TarifaMetrajeVersionProps {
   valorVenta: number;
   valorPropietario: number;
   produccionKg: number;
+  cantidadMinimaEntrega: number;
   createdAt: Date;
   createdBy: string | null;
 }
@@ -14,6 +15,7 @@ export class TarifaMetrajeVersion {
   readonly valorVenta: number;
   readonly valorPropietario: number;
   readonly produccionKg: number;
+  readonly cantidadMinimaEntrega: number;
   readonly createdAt: Date;
   readonly createdBy: string | null;
 
@@ -23,6 +25,7 @@ export class TarifaMetrajeVersion {
     this.valorVenta = props.valorVenta;
     this.valorPropietario = props.valorPropietario;
     this.produccionKg = props.produccionKg;
+    this.cantidadMinimaEntrega = props.cantidadMinimaEntrega;
     this.createdAt = props.createdAt;
     this.createdBy = props.createdBy;
   }
@@ -35,6 +38,7 @@ export interface TarifaMetrajeProps {
   valorVentaActual: number | null;
   valorPropietarioActual: number | null;
   produccionKgActual: number | null;
+  cantidadMinimaEntregaActual: number | null;
   createdAt: Date;
   createdBy: string | null;
 }
@@ -46,6 +50,7 @@ export class TarifaMetraje {
   readonly valorVentaActual: number | null;
   readonly valorPropietarioActual: number | null;
   readonly produccionKgActual: number | null;
+  readonly cantidadMinimaEntregaActual: number | null;
   readonly createdAt: Date;
   readonly createdBy: string | null;
 
@@ -56,6 +61,7 @@ export class TarifaMetraje {
     this.valorVentaActual = props.valorVentaActual;
     this.valorPropietarioActual = props.valorPropietarioActual;
     this.produccionKgActual = props.produccionKgActual;
+    this.cantidadMinimaEntregaActual = props.cantidadMinimaEntregaActual;
     this.createdAt = props.createdAt;
     this.createdBy = props.createdBy;
   }

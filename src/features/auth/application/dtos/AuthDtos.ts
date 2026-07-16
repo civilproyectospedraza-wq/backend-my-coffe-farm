@@ -18,5 +18,7 @@ export interface AuthResult {
     name: string;
     email: string;
     rol: Rol;
+    // Presente solo cuando el usuario es Propietario.
+    propietarioId?: string;
   };
 }

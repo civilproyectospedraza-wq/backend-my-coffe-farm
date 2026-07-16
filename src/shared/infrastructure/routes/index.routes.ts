@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { authRoutes } from "@features/auth/infrastructure/routes/auth.routes";
+import { dashboardRoutes } from "@features/dashboard/infrastructure/routes/dashboard.routes";
+import { entregasRoutes } from "@features/entregas/infrastructure/routes/entregas.routes";
 import { etapasRoutes } from "@features/etapas/infrastructure/routes/etapas.routes";
 import { fincasRoutes } from "@features/fincas/infrastructure/routes/fincas.routes";
 import { parcelasRoutes } from "@features/parcelas/infrastructure/routes/parcelas.routes";
@@ -20,6 +22,8 @@ import { ventasRoutes } from "@features/ventas/infrastructure/routes/ventas.rout
 export const apiRoutes = Router();
 
 apiRoutes.use("/auth", authRoutes);
+apiRoutes.use("/dashboard", dashboardRoutes);
+apiRoutes.use("/entregas", entregasRoutes);
 apiRoutes.use("/etapas", etapasRoutes);
 apiRoutes.use("/fincas", fincasRoutes);
 apiRoutes.use("/parcelas", parcelasRoutes);

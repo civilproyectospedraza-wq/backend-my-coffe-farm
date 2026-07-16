@@ -6,6 +6,7 @@ export interface CreateTarifaMetrajeData {
   valorVenta: number;
   valorPropietario: number;
   produccionKg: number;
+  cantidadMinimaEntrega: number;
   createdBy?: string | null;
 }
 
@@ -13,6 +14,7 @@ export interface CreateTarifaMetrajeVersionData {
   valorVenta: number;
   valorPropietario: number;
   produccionKg: number;
+  cantidadMinimaEntrega: number;
   createdBy?: string | null;
 }
 

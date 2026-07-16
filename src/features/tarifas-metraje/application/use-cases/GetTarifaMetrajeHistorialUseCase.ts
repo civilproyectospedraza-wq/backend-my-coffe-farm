@@ -23,6 +23,7 @@ export class GetTarifaMetrajeHistorialUseCase {
       valorVenta: version.valorVenta,
       valorPropietario: version.valorPropietario,
       produccionKg: version.produccionKg,
+      cantidadMinimaEntrega: version.cantidadMinimaEntrega,
       esActual: version.id === tarifa.versionId,
       createdAt: version.createdAt,
       createdBy: version.createdBy,

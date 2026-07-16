@@ -58,33 +58,85 @@ const LOGO: Uint8Array | null = (() => {
 })();
 
 // ---- Plantillas HTML compartidas ----
+//
+// Los correos usan tablas + estilos inline (no flexbox/CSS externo): es la única
+// forma de que se rendericen centrados e iguales en Gmail, Outlook, Apple Mail,
+// etc. La paleta sigue la marca (marrón café + dorado sobre crema).
+
+const COLOR = {
+  cafe: "#5b3a1a", // marrón principal
+  dorado: "#c08a2d", // acento
+  crema: "#f4f1ea", // fondo exterior
+  texto: "#2d2a26",
+  suave: "#6f6a63", // texto secundario
+  borde: "#e7e1d6",
+};
 
 function logoHtml(): string {
   return LOGO
-    ? `<div style="text-align: center; margin-bottom: 20px;">
-         <img src="cid:${LOGO_CID}" alt="My Coffee Farm" style="max-width: 150px; height: auto;" />
-       </div>`
+    ? `<img src="cid:${LOGO_CID}" alt="My Coffee Farm" width="96" height="96" style="display:block; width:96px; height:96px; margin:0 auto 12px; border-radius:50%;" />`
     : "";
 }
 
-function layout(titulo: string, cuerpo: string): string {
-  return `
-  <div style="font-family: Arial, Helvetica, sans-serif; max-width: 560px; margin: 0 auto; color: #2d2a26;">
-    ${logoHtml()}
-    <h2 style="color: #5b3a1a;">${titulo}</h2>
-    ${cuerpo}
-    <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
-    <p style="font-size: 12px; color: #999;">My Coffee Farm</p>
-  </div>`;
+/**
+ * Marco común de todos los correos: card blanca centrada (600px) sobre fondo
+ * crema, con cabecera de marca y pie. El `cuerpo` ya viene con su HTML interno.
+ * `preheader` es el texto de vista previa que muestran los clientes de correo.
+ */
+function layout(titulo: string, cuerpo: string, preheader: string): string {
+  return `<!-- preheader --><div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${preheader}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${COLOR.crema}; margin:0; padding:24px 0;">
+  <tr>
+    <td align="center">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px; background:#ffffff; border:1px solid ${COLOR.borde}; border-radius:14px; overflow:hidden; font-family:Arial,Helvetica,sans-serif;">
+        <!-- Cabecera de marca -->
+        <tr>
+          <td align="center" style="background:${COLOR.cafe}; padding:28px 24px 22px;">
+            ${logoHtml()}
+            <div style="color:#f7efe2; font-size:13px; letter-spacing:3px; text-transform:uppercase;">My Coffee Farm</div>
+          </td>
+        </tr>
+        <!-- Barra dorada -->
+        <tr><td style="height:4px; background:${COLOR.dorado}; font-size:0; line-height:0;">&nbsp;</td></tr>
+        <!-- Contenido -->
+        <tr>
+          <td align="center" style="padding:36px 40px 32px; color:${COLOR.texto};">
+            <h1 style="margin:0 0 18px; font-size:23px; line-height:1.3; color:${COLOR.cafe};">${titulo}</h1>
+            ${cuerpo}
+          </td>
+        </tr>
+        <!-- Pie -->
+        <tr>
+          <td align="center" style="background:${COLOR.crema}; padding:22px 40px; border-top:1px solid ${COLOR.borde};">
+            <div style="font-size:12px; color:${COLOR.suave}; line-height:1.6;">
+              Cultiva hoy, cosecha mañana &middot; <strong style="color:${COLOR.cafe};">My Coffee Farm</strong><br />
+              Este es un correo automático, por favor no respondas a este mensaje.
+            </div>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>`;
 }
 
+/** Botón "bulletproof" (tabla) para que también se vea bien en Outlook. */
 function boton(texto: string, url: string): string {
-  return `<p style="margin: 24px 0;">
-    <a href="${url}" style="background: #5b3a1a; color: #fff; text-decoration: none; padding: 12px 20px; border-radius: 6px; display: inline-block;">${texto}</a>
-  </p>
-  <p style="font-size: 13px; color: #666;">Si el botón no funciona, copia y pega este enlace en tu navegador:<br />
-    <a href="${url}">${url}</a>
+  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px auto 20px;">
+    <tr>
+      <td align="center" style="border-radius:8px; background:${COLOR.cafe};">
+        <a href="${url}" style="display:inline-block; padding:15px 34px; font-size:16px; font-weight:bold; color:#ffffff; text-decoration:none; border-radius:8px;">${texto}</a>
+      </td>
+    </tr>
+  </table>
+  <p style="margin:0; font-size:12px; color:${COLOR.suave}; line-height:1.6;">Si el botón no funciona, copia y pega este enlace en tu navegador:<br />
+    <a href="${url}" style="color:${COLOR.dorado}; word-break:break-all;">${url}</a>
   </p>`;
+}
+
+/** Párrafo centrado con el estilo de cuerpo estándar. */
+function parrafo(texto: string): string {
+  return `<p style="margin:0 0 16px; font-size:15px; line-height:1.65; color:${COLOR.texto};">${texto}</p>`;
 }
 
 /**
@@ -157,9 +209,21 @@ export class MailgunMailer implements Mailer {
   ): Promise<void> {
     const html = layout(
       `¡Bienvenido, ${mail.nombre}!`,
-      `<p>Tu cuenta de caficultor fue aprobada. Ya puedes iniciar sesión con:</p>
-       <p><strong>Usuario:</strong> ${mail.email}<br />
-          <strong>Contraseña:</strong> ${mail.passwordAcceso}</p>`
+      `${parrafo(
+        "Tu cuenta de caficultor fue <strong>aprobada</strong>. Ya puedes iniciar sesión con estos datos:"
+      )}
+       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 4px;">
+         <tr><td style="padding:16px 20px; background:${COLOR.crema}; border-radius:10px; text-align:left;">
+           <div style="font-size:14px; color:${COLOR.texto}; line-height:1.9;">
+             <strong>Usuario:</strong> ${mail.email}<br />
+             <strong>Contraseña:</strong> ${mail.passwordAcceso}
+           </div>
+         </td></tr>
+       </table>
+       ${parrafo(
+         `<span style="font-size:13px; color:${COLOR.suave};">Por seguridad, te recomendamos cambiar tu contraseña al ingresar.</span>`
+       )}`,
+      "Tu cuenta de caficultor fue aprobada. Ya puedes iniciar sesión."
     );
     const text =
       `¡Bienvenido, ${mail.nombre}!\n\n` +
@@ -173,16 +237,34 @@ export class MailgunMailer implements Mailer {
     mail: ActivacionPropietarioMail
   ): Promise<void> {
     const html = layout(
-      `¡Gracias por registrarte, ${mail.nombre}!`,
-      `<p>Gracias por registrarte con nosotros en My Coffee Farm.</p>
-       <p>Para terminar, activa tu cuenta y define tu contraseña desde el siguiente enlace:</p>
-       ${boton("Activar mi cuenta", mail.enlaceActivacion)}`
+      `¡Bienvenido a My Coffee Farm, ${mail.nombre}!`,
+      `${parrafo(
+        "Nos alegra tenerte. Estás a un paso de comenzar a <strong>alquilar tu finca cafetera</strong> y convertir tu tierra en una nueva fuente de ingresos."
+      )}
+       ${parrafo(
+         "Solo falta <strong>activar tu cuenta</strong> y definir tu contraseña. Es rápido y seguro:"
+       )}
+       ${boton("Activar mi cuenta", mail.enlaceActivacion)}
+       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 4px;">
+         <tr><td style="padding:16px 20px; background:${COLOR.crema}; border-radius:10px; text-align:left;">
+           <div style="font-size:13px; color:${COLOR.suave}; line-height:1.7;">
+             ✔ Publica tu finca y recibe solicitudes de alquiler.<br />
+             ✔ Tú defines la disponibilidad y las condiciones.<br />
+             ✔ Acompañamiento en todo el proceso.
+           </div>
+         </td></tr>
+       </table>
+       ${parrafo(
+         `<span style="font-size:13px; color:${COLOR.suave};">Este enlace de activación es personal. Si no creaste esta cuenta, puedes ignorar este correo.</span>`
+       )}`,
+      "Activa tu cuenta y empieza a alquilar tu finca en My Coffee Farm."
     );
     const text =
-      `¡Gracias por registrarte, ${mail.nombre}!\n\n` +
-      `Gracias por registrarte con nosotros en My Coffee Farm.\n` +
-      `Para terminar, activa tu cuenta y define tu contraseña en este enlace:\n` +
+      `¡Bienvenido a My Coffee Farm, ${mail.nombre}!\n\n` +
+      `Estás a un paso de comenzar a alquilar tu finca cafetera y convertir tu tierra en una nueva fuente de ingresos.\n\n` +
+      `Solo falta activar tu cuenta y definir tu contraseña en este enlace:\n` +
       `${mail.enlaceActivacion}\n\n` +
+      `Este enlace es personal. Si no creaste esta cuenta, ignora este mensaje.\n\n` +
       `My Coffee Farm`;
     await this.send(
       mail.email,
@@ -194,10 +276,13 @@ export class MailgunMailer implements Mailer {
 
   async enviarCuentaActivada(mail: CuentaActivadaMail): Promise<void> {
     const html = layout(
-      `¡Tu cuenta está activa, ${mail.nombre}!`,
-      `<p>Tu cuenta de My Coffee Farm ya está activa.</p>
-       <p>Ingresa cuando quieras desde:</p>
-       ${boton("Iniciar sesión", mail.enlaceLogin)}`
+      `¡Tu cuenta ya está activa, ${mail.nombre}!`,
+      `${parrafo(
+        "Tu cuenta de My Coffee Farm quedó <strong>activada</strong>. Ya puedes publicar tu finca y empezar a recibir solicitudes de alquiler."
+      )}
+       ${parrafo("Ingresa cuando quieras desde aquí:")}
+       ${boton("Iniciar sesión", mail.enlaceLogin)}`,
+      "Tu cuenta ya está activa en My Coffee Farm. ¡Ingresa cuando quieras!"
     );
     const text =
       `¡Tu cuenta está activa, ${mail.nombre}!\n\n` +

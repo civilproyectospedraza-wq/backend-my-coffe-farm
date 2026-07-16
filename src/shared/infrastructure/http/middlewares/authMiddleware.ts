@@ -7,7 +7,7 @@ declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
-      user?: { id: string; email: string; rol: Rol };
+      user?: { id: string; email: string; rol: Rol; propietarioId?: string };
     }
   }
 }
@@ -26,6 +26,13 @@ export function authMiddleware(
   const token = header.slice("Bearer ".length).trim();
   const payload = authTokenService.verify(token);
 
-  req.user = { id: payload.sub, email: payload.email, rol: payload.rol };
+  req.user = {
+    id: payload.sub,
+    email: payload.email,
+    rol: payload.rol,
+    ...(payload.propietarioId
+      ? { propietarioId: payload.propietarioId }
+      : {}),
+  };
   next();
 }

@@ -21,6 +21,12 @@ export class UnauthorizedError extends AppError {
   }
 }
 
+export class ForbiddenError extends AppError {
+  constructor(message = "No tienes permiso para acceder a este recurso") {
+    super(message, 403);
+  }
+}
+
 export class NotFoundError extends AppError {
   constructor(message = "Recurso no encontrado") {
     super(message, 404);

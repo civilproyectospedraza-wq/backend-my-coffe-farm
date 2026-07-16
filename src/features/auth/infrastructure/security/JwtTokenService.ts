@@ -28,6 +28,9 @@ export class JwtTokenService implements TokenService {
         sub: String(decoded.sub),
         email: String(decoded.email),
         rol: decoded.rol as TokenPayload["rol"],
+        ...(decoded.propietarioId
+          ? { propietarioId: String(decoded.propietarioId) }
+          : {}),
       };
     } catch {
       throw new UnauthorizedError("Token inválido o expirado");

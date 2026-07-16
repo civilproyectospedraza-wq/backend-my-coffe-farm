@@ -32,6 +32,10 @@ export const updateFincaSchema = z.object({
 export const listFincasSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(10),
+  // Filtro opcional por propietario. Para un Propietario autenticado el backend
+  // lo fuerza a su propio id (ver resolvePropietarioScope); para un
+  // Administrador es un filtro opcional.
+  propietarioId: z.string().uuid().optional(),
 });
 
 export const buscarFincasSchema = z.object({

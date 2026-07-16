@@ -50,4 +50,6 @@ export interface ListParcelasInput {
   limit: number;
   fincaId?: string;
   estado?: EstadoParcela;
+  // Si viene, solo las parcelas cuyas fincas pertenecen a ese propietario.
+  propietarioId?: string;
 }

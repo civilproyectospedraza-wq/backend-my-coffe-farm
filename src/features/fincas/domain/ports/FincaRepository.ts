@@ -33,6 +33,8 @@ export interface UpdateFincaData {
 export interface FindFincasParams extends PaginationParams {
   /** Texto a buscar en nombre o ubicación. */
   search?: string;
+  /** Si viene, solo las fincas de ese propietario. */
+  propietarioId?: string;
 }
 
 /** Puerto: persistencia de fincas. */

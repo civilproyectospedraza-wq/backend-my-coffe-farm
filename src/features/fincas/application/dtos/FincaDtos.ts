@@ -24,6 +24,8 @@ export interface UpdateFincaInput {
 export interface ListFincasInput {
   page: number;
   limit: number;
+  // Si viene, solo las fincas de ese propietario.
+  propietarioId?: string;
 }
 
 export interface BuscarFincasInput {

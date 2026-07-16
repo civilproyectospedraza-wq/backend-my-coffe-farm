@@ -52,6 +52,8 @@ export interface UpdateParcelaData {
 export interface ListParcelasParams extends PaginationParams {
   fincaId?: string;
   estado?: EstadoParcela;
+  /** Si viene, solo parcelas cuyas fincas pertenecen a ese propietario. */
+  propietarioId?: string;
 }
 
 /** Puerto: persistencia de parcelas (con versionado). */

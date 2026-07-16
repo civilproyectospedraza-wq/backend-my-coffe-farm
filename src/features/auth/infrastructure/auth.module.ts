@@ -4,6 +4,7 @@ import { LoginUserUseCase } from "../application/use-cases/LoginUserUseCase";
 import { RegisterUserUseCase } from "../application/use-cases/RegisterUserUseCase";
 import { ValidarAuthUseCase } from "../application/use-cases/ValidarAuthUseCase";
 import { AuthController } from "./http/AuthController";
+import { PrismaPropietarioLookup } from "./persistence/PrismaPropietarioLookup";
 import { PrismaUserRepository } from "./persistence/PrismaUserRepository";
 import { BcryptPasswordHasher } from "./security/BcryptPasswordHasher";
 import { JwtTokenService } from "./security/JwtTokenService";
@@ -15,6 +16,7 @@ import { JwtTokenService } from "./security/JwtTokenService";
 const userRepository = new PrismaUserRepository(prisma);
 const passwordHasher = new BcryptPasswordHasher();
 const tokenService = new JwtTokenService(env.jwt.secret, env.jwt.expiresIn);
+const propietarioLookup = new PrismaPropietarioLookup(prisma);
 
 const registerUserUseCase = new RegisterUserUseCase(
   userRepository,
@@ -24,9 +26,13 @@ const registerUserUseCase = new RegisterUserUseCase(
 const loginUserUseCase = new LoginUserUseCase(
   userRepository,
   passwordHasher,
-  tokenService
+  tokenService,
+  propietarioLookup
 );
-const validarAuthUseCase = new ValidarAuthUseCase(userRepository);
+const validarAuthUseCase = new ValidarAuthUseCase(
+  userRepository,
+  propietarioLookup
+);
 
 export const authController = new AuthController(
   registerUserUseCase,

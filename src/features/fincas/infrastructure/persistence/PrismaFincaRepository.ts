@@ -45,17 +45,17 @@ export class PrismaFincaRepository implements FincaRepository {
   }
 
   async findMany(params: FindFincasParams): Promise<PaginatedResult<Finca>> {
-    const { page, limit, search } = params;
+    const { page, limit, search, propietarioId } = params;
     const skip = (page - 1) * limit;
 
-    const where: Prisma.FincaWhereInput = search
-      ? {
-          OR: [
-            { nombre: { contains: search, mode: "insensitive" } },
-            { ubicacion: { contains: search, mode: "insensitive" } },
-          ],
-        }
-      : {};
+    const where: Prisma.FincaWhereInput = {};
+    if (propietarioId) where.propietarioId = propietarioId;
+    if (search) {
+      where.OR = [
+        { nombre: { contains: search, mode: "insensitive" } },
+        { ubicacion: { contains: search, mode: "insensitive" } },
+      ];
+    }
 
     const [records, total] = await this.prisma.$transaction([
       this.prisma.finca.findMany({
