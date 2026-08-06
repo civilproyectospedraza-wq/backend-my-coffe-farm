@@ -65,7 +65,9 @@ export class UpdateEntregaUseCase {
 
     return {
       id: entrega.id,
+      parcelaId: entrega.parcelaId,
       suscripcionId: entrega.suscripcionId,
+      solicitudId: entrega.solicitudId,
       cantidadEntregada: entrega.cantidadEntregada,
       valorPagado: entrega.valorPagado,
       comprobanteUrl,

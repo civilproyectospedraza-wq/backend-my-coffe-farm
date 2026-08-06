@@ -6,7 +6,8 @@ export interface DashboardScope {
 /** Entrega cruda (con id de imagen sin resolver) para el panel. */
 export interface DashboardEntregaRaw {
   id: string;
-  suscripcionId: string;
+  parcelaId: string;
+  suscripcionId: string | null;
   cantidadEntregada: number;
   valorPagado: number;
   imagenComprobanteId: string | null;

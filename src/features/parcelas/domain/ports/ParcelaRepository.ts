@@ -19,6 +19,11 @@ export interface CreateParcelaData {
   // Ids de las imágenes (ImagenLocal) ya subidas para la portada de la
   // parcela. Se persisten en `ImagenParcela`, en el orden recibido.
   imagenLocalIds?: string[];
+  // Cuántas veces al año cosecha la parcela (1 a 12).
+  temporalidadCosecha?: number | null;
+  // Meses de cosecha (1 a 12). Su cantidad debe coincidir con
+  // `temporalidadCosecha`; se validan en el caso de uso.
+  mesesCosecha?: number[];
   version: {
     nombre: string;
     descripcion?: string | null;
@@ -39,6 +44,10 @@ export interface UpdateParcelaData {
   // imagenLocalId de imágenes existentes a eliminar de la galería (junto con
   // su ImagenLocal). El resto de la galería se conserva.
   imagenesEliminar?: string[];
+  // Cuántas veces al año cosecha la parcela (1 a 12).
+  temporalidadCosecha?: number | null;
+  // Si viene, reemplaza por completo los meses de cosecha de la parcela.
+  mesesCosecha?: number[];
   // Si viene, se genera una nueva versión de la parcela.
   version?: {
     nombre?: string;
@@ -56,12 +65,27 @@ export interface ListParcelasParams extends PaginationParams {
   propietarioId?: string;
 }
 
+/**
+ * Parcela del listado junto con el estado de sus solicitudes de entrega, para
+ * que la tabla no tenga que consultarlas parcela por parcela.
+ */
+export interface ParcelaListItem {
+  parcela: Parcela;
+  /**
+   * true si la parcela tiene al menos una solicitud de entrega en estado
+   * `pendiente` (sin atender todavía).
+   */
+  solicitudEntregaActiva: boolean;
+}
+
 /** Puerto: persistencia de parcelas (con versionado). */
 export interface ParcelaRepository {
   create(data: CreateParcelaData): Promise<Parcela>;
   update(id: string, data: UpdateParcelaData): Promise<Parcela>;
   findById(id: string): Promise<Parcela | null>;
-  findMany(params: ListParcelasParams): Promise<PaginatedResult<Parcela>>;
+  findMany(
+    params: ListParcelasParams
+  ): Promise<PaginatedResult<ParcelaListItem>>;
 
   /**
    * Catálogo público: parcelas disponibles para la venta. Solo incluye

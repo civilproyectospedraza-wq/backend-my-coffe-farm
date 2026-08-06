@@ -12,6 +12,12 @@ tarifasMetrajeRoutes.get("/", tarifaMetrajeController.list);
 // Todas las tarifas sin paginar (para el selector de crear/editar parcela).
 // Debe ir antes de "/:id" para no colisionar con la validación de uuid.
 tarifasMetrajeRoutes.get("/all", tarifaMetrajeController.listAll);
+// Tarifa vigente de una parcela (tarifa + versión actual). También debe ir
+// antes de "/:id" para no colisionar con la validación de uuid.
+tarifasMetrajeRoutes.get(
+  "/parcela/:parcelaId",
+  tarifaMetrajeController.getByParcela
+);
 tarifasMetrajeRoutes.get("/:id", tarifaMetrajeController.getById);
 // Historial completo de versiones de la tarifa (más reciente primero).
 tarifasMetrajeRoutes.get(

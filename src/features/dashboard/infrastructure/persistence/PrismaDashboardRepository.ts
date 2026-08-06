@@ -17,8 +17,8 @@ export class PrismaDashboardRepository implements DashboardRepository {
     const parcelaWhere: Prisma.ParcelaWhereInput = propietarioId
       ? { finca: { propietarioId } }
       : {};
-    const entregaWhere: Prisma.EntregaParcelaSuscripcionWhereInput = propietarioId
-      ? { suscripcion: { parcela: { finca: { propietarioId } } } }
+    const entregaWhere: Prisma.EntregaParcelaWhereInput = propietarioId
+      ? { parcela: { finca: { propietarioId } } }
       : {};
 
     // Todo en BD: COUNT de fincas, COUNT de parcelas por estado, COUNT+SUM de
@@ -37,12 +37,12 @@ export class PrismaDashboardRepository implements DashboardRepository {
       this.prisma.parcela.count({
         where: { ...parcelaWhere, estado: "disponible" },
       }),
-      this.prisma.entregaParcelaSuscripcion.aggregate({
+      this.prisma.entregaParcela.aggregate({
         where: entregaWhere,
         _count: { _all: true },
         _sum: { cantidadEntregada: true, valorPagado: true },
       }),
-      this.prisma.entregaParcelaSuscripcion.findMany({
+      this.prisma.entregaParcela.findMany({
         where: entregaWhere,
         orderBy: { createdAt: "desc" },
         take: 5,
@@ -59,6 +59,7 @@ export class PrismaDashboardRepository implements DashboardRepository {
       totalValorPagado: entregasAgg._sum.valorPagado?.toNumber() ?? 0,
       entregasRecientes: entregasRecientes.map((e) => ({
         id: e.id,
+        parcelaId: e.parcelaId,
         suscripcionId: e.suscripcionId,
         cantidadEntregada: e.cantidadEntregada.toNumber(),
         valorPagado: e.valorPagado.toNumber(),

@@ -1,4 +1,5 @@
 import { BadRequestError, NotFoundError } from "@shared/errors/AppError";
+import { validarCosecha } from "../../domain/entities/CosechaParcela";
 import { Parcela } from "../../domain/entities/Parcela";
 import {
   ImageStorage,
@@ -32,6 +33,47 @@ export class UpdateParcelaUseCase {
       );
     }
 
+    // Cosecha: la temporalidad y los meses se validan como pareja contra el
+    // estado resultante, así el front puede enviar solo uno de los dos y el
+    // otro se conserva. Si solo llega uno, el faltante se toma de la parcela.
+    let temporalidadCosecha: number | null | undefined;
+    let mesesCosecha: number[] | undefined;
+    if (
+      input.temporalidadCosecha !== undefined ||
+      input.mesesCosecha !== undefined
+    ) {
+      const temporalidadFinal =
+        input.temporalidadCosecha !== undefined
+          ? input.temporalidadCosecha
+          : parcela.temporalidadCosecha;
+      const mesesFinal =
+        input.mesesCosecha !== undefined
+          ? input.mesesCosecha
+          : parcela.mesesCosecha;
+
+      if (temporalidadFinal === null) {
+        // Quitar la temporalidad limpia también los meses guardados.
+        if (input.mesesCosecha?.length) {
+          throw new BadRequestError(
+            "No puedes enviar meses de cosecha sin temporalidadCosecha"
+          );
+        }
+        temporalidadCosecha = null;
+        mesesCosecha = [];
+      } else {
+        const errorCosecha = validarCosecha(
+          temporalidadFinal,
+          mesesFinal.length ? mesesFinal : undefined
+        );
+        if (errorCosecha) {
+          throw new BadRequestError(errorCosecha);
+        }
+
+        temporalidadCosecha = temporalidadFinal;
+        mesesCosecha = mesesFinal;
+      }
+    }
+
     // Las imágenes nuevas se anexan a la galería: se suben primero y luego se
     // referencian, conservando el orden recibido.
     let imagenesAgregar: string[] | undefined;
@@ -59,6 +101,8 @@ export class UpdateParcelaUseCase {
       etapaActualId: input.etapaActualId,
       latitud: input.latitud,
       longitud: input.longitud,
+      temporalidadCosecha,
+      mesesCosecha,
       imagenesAgregar,
       imagenesEliminar: input.imagenesEliminar,
       version: hasVersionChange

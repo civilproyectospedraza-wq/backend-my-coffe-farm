@@ -3,7 +3,8 @@ import { Finca } from "@features/fincas/domain/entities/Finca";
 /** Entrega ya resuelta (URL pública del comprobante) para el panel. */
 export interface DashboardEntregaResponse {
   id: string;
-  suscripcionId: string;
+  parcelaId: string;
+  suscripcionId: string | null;
   cantidadEntregada: number;
   valorPagado: number;
   comprobanteUrl: string | null;

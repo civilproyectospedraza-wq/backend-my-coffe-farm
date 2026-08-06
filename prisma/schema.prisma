@@ -49,6 +49,16 @@ enum EstadoRegistroCaficultor {
   rechazado
 }
 
+// Estado de una solicitud de entrega de café sobre una parcela. Nace
+// `pendiente`, pasa a `en_gestion` mientras se atiende y termina en
+// `gestionada` (atendida) o `cancelado` (descartada).
+enum EstadoSolicitudEntrega {
+  pendiente
+  en_gestion
+  gestionada
+  cancelado
+}
+
 // ============================================================
 //  UBICACIÓN (DIVIPOLA - DANE)
 // ============================================================
@@ -134,16 +144,16 @@ model Cliente {
 }
 
 model Propietario {
-  id        String            @id @default(uuid())
+  id              String            @id @default(uuid())
   // Nullable: en el registro público el propietario nace `pendiente` sin
   // usuario; el User (rol Propietario) se crea al activar la cuenta.
-  usuarioId String?           @unique @map("usuario_id")
-  personaId String            @unique @map("persona_id")
-  estado    EstadoPropietario @default(pendiente)
+  usuarioId       String?           @unique @map("usuario_id")
+  personaId       String            @unique @map("persona_id")
+  estado          EstadoPropietario @default(pendiente)
   // Token de un solo uso para activar la cuenta desde el enlace del correo.
-  tokenActivacion String?     @unique @map("token_activacion")
-  activadoAt      DateTime?   @map("activado_at")
-  createdAt       DateTime    @default(now()) @map("created_at")
+  tokenActivacion String?           @unique @map("token_activacion")
+  activadoAt      DateTime?         @map("activado_at")
+  createdAt       DateTime          @default(now()) @map("created_at")
 
   usuario User?   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   persona Persona @relation(fields: [personaId], references: [id], onDelete: Restrict)
@@ -228,24 +238,30 @@ model Etapa {
 }
 
 model Parcela {
-  id              String        @id @default(uuid())
-  fincaId         String        @map("finca_id")
-  etapaActualId   String?       @map("etapa_actual_id")
-  versionActualId String?       @unique @map("version_actual_id")
-  estado          EstadoParcela @default(disponible)
-  latitud         Decimal?      @db.Decimal(9, 6)
-  longitud        Decimal?      @db.Decimal(9, 6)
-  createdAt       DateTime      @default(now()) @map("created_at")
+  id                  String        @id @default(uuid())
+  fincaId             String        @map("finca_id")
+  etapaActualId       String?       @map("etapa_actual_id")
+  versionActualId     String?       @unique @map("version_actual_id")
+  estado              EstadoParcela @default(disponible)
+  latitud             Decimal?      @db.Decimal(9, 6)
+  longitud            Decimal?      @db.Decimal(9, 6)
+  // Cuántas veces al año cosecha la parcela (1 a 12). Debe coincidir con la
+  // cantidad de filas en `mesesCosecha`.
+  temporalidadCosecha Int?          @map("temporalidad_cosecha")
+  createdAt           DateTime      @default(now()) @map("created_at")
 
   finca         Finca           @relation(fields: [fincaId], references: [id], onDelete: Cascade)
   etapaActual   Etapa?          @relation("EtapaActual", fields: [etapaActualId], references: [id], onDelete: SetNull)
   versionActual VersionParcela? @relation("VersionActual", fields: [versionActualId], references: [id], onDelete: SetNull)
 
-  versiones     VersionParcela[] @relation("ParcelaVersiones")
-  imagenes      ImagenParcela[]
-  reportes      Reporte[]
-  ventas        Venta[]
-  suscripciones Suscripcion[]
+  versiones          VersionParcela[]          @relation("ParcelaVersiones")
+  imagenes           ImagenParcela[]
+  mesesCosecha       MesCosechaParcela[]
+  reportes           Reporte[]
+  ventas             Venta[]
+  suscripciones      Suscripcion[]
+  entregas           EntregaParcela[]
+  solicitudesEntrega SolicitudEntregaParcela[]
 
   @@index([fincaId])
   @@index([estado])
@@ -253,18 +269,34 @@ model Parcela {
   @@map("parcelas")
 }
 
+// Meses del año (1 = enero … 12 = diciembre) en los que la parcela cosecha sus
+// cultivos. La cantidad de filas por parcela debe ser igual a
+// `Parcela.temporalidadCosecha`; el par (parcela, mes) es único.
+model MesCosechaParcela {
+  id        String   @id @default(uuid())
+  parcelaId String   @map("parcela_id")
+  mes       Int
+  createdAt DateTime @default(now()) @map("created_at")
+
+  parcela Parcela @relation(fields: [parcelaId], references: [id], onDelete: Cascade)
+
+  @@unique([parcelaId, mes])
+  @@index([parcelaId])
+  @@map("meses_cosecha_parcela")
+}
+
 // Snapshot inmutable de los datos de una parcela en un momento dado.
 // Las suscripciones se atan a una versión para preservar precio y datos.
 model VersionParcela {
-  id              String   @id @default(uuid())
-  parcelaId       String   @map("parcela_id")
-  numeroVersion   Int      @map("numero_version")
-  nombre          String   @db.VarChar(100)
-  descripcion     String?  @db.Text
-  tarifaMetrajeId String?  @map("tarifa_metraje_id")
-  precioVentaPublico Decimal @map("precio_venta_publico") @db.Decimal(10, 2)
-  precioCafetero     Decimal @map("precio_cafetero") @db.Decimal(10, 2)
-  createdAt       DateTime @default(now()) @map("created_at")
+  id                 String   @id @default(uuid())
+  parcelaId          String   @map("parcela_id")
+  numeroVersion      Int      @map("numero_version")
+  nombre             String   @db.VarChar(100)
+  descripcion        String?  @db.Text
+  tarifaMetrajeId    String?  @map("tarifa_metraje_id")
+  precioVentaPublico Decimal  @map("precio_venta_publico") @db.Decimal(10, 2)
+  precioCafetero     Decimal  @map("precio_cafetero") @db.Decimal(10, 2)
+  createdAt          DateTime @default(now()) @map("created_at")
 
   parcela         Parcela               @relation("ParcelaVersiones", fields: [parcelaId], references: [id], onDelete: Cascade)
   // Back-relation del puntero Parcela.versionActual.
@@ -320,19 +352,23 @@ model TarifaMetrajeParcela {
 
 // Snapshot inmutable del valor de una tarifa de metraje en un momento dado.
 model TarifaMetrajeParcelaVersion {
-  id               String   @id @default(uuid())
-  tarifaMedidaId   String   @map("tarifa_medida_id")
-  valorVenta       Decimal  @map("valor_venta") @db.Decimal(10, 2)
-  valorPropietario Decimal  @map("valor_propietario") @db.Decimal(10, 2)
-  produccionKg     Decimal  @map("produccion_kg") @db.Decimal(12, 2)
-  cantidadMinimaEntrega Decimal @map("cantidad_minima_entrega") @db.Decimal(12, 2)
-  createdAt      DateTime @default(now()) @map("created_at")
-  createdBy      String?  @map("created_by")
+  id                              String   @id @default(uuid())
+  tarifaMedidaId                  String   @map("tarifa_medida_id")
+  valorVenta                      Decimal  @map("valor_venta") @db.Decimal(10, 2)
+  // Valor que se le paga al propietario por cada kg entregado. El front lo
+  // multiplica por los kg que el propietario va a entregar.
+  valorProduccionPropietarioPorKg Decimal  @default(0) @map("valor_produccion_propietario_por_kg") @db.Decimal(10, 2)
+  produccionKg                    Decimal  @map("produccion_kg") @db.Decimal(12, 2)
+  cantidadMinimaEntrega           Decimal  @map("cantidad_minima_entrega") @db.Decimal(12, 2)
+  createdAt                       DateTime @default(now()) @map("created_at")
+  createdBy                       String?  @map("created_by")
 
-  tarifa         TarifaMetrajeParcela  @relation("TarifaMetrajeVersiones", fields: [tarifaMedidaId], references: [id], onDelete: Cascade)
+  tarifa             TarifaMetrajeParcela      @relation("TarifaMetrajeVersiones", fields: [tarifaMedidaId], references: [id], onDelete: Cascade)
   // Back-relation del puntero TarifaMetrajeParcela.versionActual.
-  tarifaActualDe TarifaMetrajeParcela? @relation("TarifaMetrajeVersionActual")
-  creadoPor      User?                 @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  tarifaActualDe     TarifaMetrajeParcela?     @relation("TarifaMetrajeVersionActual")
+  creadoPor          User?                     @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  // Solicitudes de entrega que congelaron esta versión como base de pago.
+  solicitudesEntrega SolicitudEntregaParcela[]
 
   @@index([tarifaMedidaId])
   @@map("tarifas_metraje_parcelas_version")
@@ -357,8 +393,8 @@ model Venta {
   suscripcionId    String?     @unique @map("suscripcion_id")
 
   // Datos del comprador capturados al crear la venta.
-  clienteNombre             String              @map("cliente_nombre") @db.VarChar(150)
-  clienteEmail              String              @map("cliente_email") @db.VarChar(100)
+  clienteNombre         String  @map("cliente_nombre") @db.VarChar(150)
+  clienteEmail          String  @map("cliente_email") @db.VarChar(100)
   clienteTelefono       String? @map("cliente_telefono") @db.VarChar(20)
   clienteDireccion      String? @map("cliente_direccion") @db.Text
   clienteIdentificacion String? @map("cliente_identificacion") @db.VarChar(30)
@@ -415,33 +451,71 @@ model Suscripcion {
   // Hereda el createdBy de la venta; null cuando la inició un cliente anónimo.
   createdBy   String?  @map("created_by")
 
-  parcela   Parcela @relation(fields: [parcelaId], references: [id], onDelete: Restrict)
-  creadoPor User?   @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  parcela   Parcela          @relation(fields: [parcelaId], references: [id], onDelete: Restrict)
+  creadoPor User?            @relation(fields: [createdBy], references: [id], onDelete: SetNull)
   // Back-relation del puntero Venta.suscripcion (1:1).
   venta     Venta?
-  entregas  EntregaParcelaSuscripcion[]
+  entregas  EntregaParcela[]
 
   @@index([parcelaId])
   @@map("suscripciones")
 }
 
-// Registro de cada entrega de café hecha sobre una suscripción de parcela.
-// Guarda cuánto se entregó, cuánto se pagó y el comprobante de pago (imagen
-// opcional en el servicio local de imágenes).
-model EntregaParcelaSuscripcion {
+// Registro de cada entrega de café hecha sobre una parcela. La parcela produce
+// y entrega esté alquilada o no, por eso el dueño de la entrega es la parcela:
+// `suscripcionId` solo anota a qué contrato se imputó (null si no había ninguno)
+// y `solicitudId` a qué solicitud responde. Guarda cuánto se entregó, cuánto se
+// pagó y el comprobante (imagen opcional en el servicio local de imágenes).
+model EntregaParcela {
   id                      String   @id @default(uuid())
+  parcelaId               String   @map("parcela_id")
   cantidadEntregada       Decimal  @map("cantidad_entregada") @db.Decimal(12, 2)
   valorPagado             Decimal  @map("valor_pagado") @db.Decimal(10, 2)
   imagenComprobantePagoId String?  @map("imagen_id_comprobante_pago")
-  suscripcionId           String   @map("suscripcion_id")
+  suscripcionId           String?  @map("suscripcion_id")
+  solicitudId             String?  @map("solicitud_id")
   createdAt               DateTime @default(now()) @map("created_at")
 
-  suscripcion       Suscripcion  @relation(fields: [suscripcionId], references: [id], onDelete: Cascade)
-  imagenComprobante ImagenLocal? @relation(fields: [imagenComprobantePagoId], references: [id], onDelete: SetNull)
+  parcela           Parcela                  @relation(fields: [parcelaId], references: [id], onDelete: Cascade)
+  // SetNull en ambos: cerrar un contrato o borrar una solicitud no puede borrar
+  // el histórico de producción de la parcela.
+  suscripcion       Suscripcion?             @relation(fields: [suscripcionId], references: [id], onDelete: SetNull)
+  solicitud         SolicitudEntregaParcela? @relation(fields: [solicitudId], references: [id], onDelete: SetNull)
+  imagenComprobante ImagenLocal?             @relation(fields: [imagenComprobantePagoId], references: [id], onDelete: SetNull)
 
-  @@index([suscripcionId, createdAt])
+  @@index([parcelaId, createdAt])
+  @@index([suscripcionId])
+  @@index([solicitudId])
   @@index([imagenComprobantePagoId])
-  @@map("entregas_parcela_suscripcion")
+  @@map("entregas_parcela")
+}
+
+// Solicitud de entrega de café sobre una parcela: cuántos kilos se piden y en
+// qué estado va la gestión. Las entregas que la atienden la referencian desde
+// `EntregaParcela.solicitudId`.
+model SolicitudEntregaParcela {
+  id              String   @id @default(uuid())
+  parcelaId       String   @map("parcela_id")
+  cantidadKg      Decimal  @map("cantidad_kg") @db.Decimal(12, 2)
+  // Versión de tarifa vigente al momento de solicitar: deja constancia de con
+  // qué valor por kg se le va a pagar al propietario. Nullable porque la
+  // parcela puede no tener tarifa asignada todavía.
+  tarifaVersionId String?  @map("tarifa_version_id")
+  // Estimado de pago congelado al crear: cantidadKg × valor por kg de esa
+  // versión de tarifa.
+  valor           Decimal? @db.Decimal(12, 2)
+
+  estado    EstadoSolicitudEntrega @default(pendiente)
+  createdAt DateTime               @default(now()) @map("created_at")
+
+  parcela       Parcela                      @relation(fields: [parcelaId], references: [id], onDelete: Cascade)
+  tarifaVersion TarifaMetrajeParcelaVersion? @relation(fields: [tarifaVersionId], references: [id], onDelete: SetNull)
+  entregas      EntregaParcela[]
+
+  @@index([parcelaId, createdAt])
+  @@index([estado])
+  @@index([tarifaVersionId])
+  @@map("solicitudes_entregas_parcelas")
 }
 
 // Registro del pago de una venta. Solo se crea cuando la venta pasa a `pagado`.
@@ -489,10 +563,10 @@ model ImagenLocal {
   tipo      String?  @db.VarChar(50)
   createdAt DateTime @default(now()) @map("created_at")
 
-  reportesImagenes ReporteImagen[]
-  imagenesParcela  ImagenParcela[]
-  fincas           Finca[]
-  entregasComprobante EntregaParcelaSuscripcion[]
+  reportesImagenes    ReporteImagen[]
+  imagenesParcela     ImagenParcela[]
+  fincas              Finca[]
+  entregasComprobante EntregaParcela[]
 
   @@map("imagenes_locales")
 }
@@ -532,4 +606,25 @@ model ReporteImagen {
   @@index([reporteId])
   @@index([imagenLocalId])
   @@map("reportes_imagenes")
+}
+
+// ============================================================
+//  CORREOS ADMINISTRATIVOS DE NOTIFICACIONES
+// ============================================================
+
+// Correos internos que reciben avisos del sistema. Cada bandera indica a qué
+// tipo de notificación está suscrito el correo. `estado` habilita/deshabilita
+// el envío sin borrar el registro y `deletedAt` marca el borrado lógico.
+model CorreoAdministrativoNotificacion {
+  id                                      String    @id @default(uuid())
+  correo                                  String    @db.VarChar(255)
+  estado                                  Boolean   @default(true)
+  notificarVentasParcelas                 Boolean   @default(false) @map("notificar_ventas_parcelas")
+  notificarSolicitudesEntregaPropietarios Boolean   @default(false) @map("notificar_solicitudes_entrega_propietarios")
+  createdAt                               DateTime  @default(now()) @map("created_at")
+  deletedAt                               DateTime? @map("deleted_at")
+
+  @@index([correo])
+  @@index([estado, deletedAt])
+  @@map("correos_administrativos_notificaciones")
 }

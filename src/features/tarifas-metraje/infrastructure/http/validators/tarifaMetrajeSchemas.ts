@@ -7,9 +7,14 @@ export const createTarifaMetrajeSchema = z.object({
   valorVenta: z.coerce
     .number({ invalid_type_error: "El valor de venta debe ser numérico" })
     .nonnegative("El valor de venta no puede ser negativo"),
-  valorPropietario: z.coerce
-    .number({ invalid_type_error: "El valor al propietario debe ser numérico" })
-    .nonnegative("El valor al propietario no puede ser negativo"),
+  valorProduccionPropietarioPorKg: z.coerce
+    .number({
+      invalid_type_error:
+        "El valor de producción al propietario por kg debe ser numérico",
+    })
+    .nonnegative(
+      "El valor de producción al propietario por kg no puede ser negativo"
+    ),
   produccionKg: z.coerce
     .number({ invalid_type_error: "La producción debe ser numérica" })
     .nonnegative("La producción no puede ser negativa"),
@@ -24,9 +29,14 @@ export const createTarifaMetrajeVersionSchema = z.object({
   valorVenta: z.coerce
     .number({ invalid_type_error: "El valor de venta debe ser numérico" })
     .nonnegative("El valor de venta no puede ser negativo"),
-  valorPropietario: z.coerce
-    .number({ invalid_type_error: "El valor al propietario debe ser numérico" })
-    .nonnegative("El valor al propietario no puede ser negativo"),
+  valorProduccionPropietarioPorKg: z.coerce
+    .number({
+      invalid_type_error:
+        "El valor de producción al propietario por kg debe ser numérico",
+    })
+    .nonnegative(
+      "El valor de producción al propietario por kg no puede ser negativo"
+    ),
   produccionKg: z.coerce
     .number({ invalid_type_error: "La producción debe ser numérica" })
     .nonnegative("La producción no puede ser negativa"),
@@ -44,4 +54,8 @@ export const listTarifasMetrajeSchema = z.object({
 
 export const tarifaMetrajeIdParamSchema = z.object({
   id: z.string().uuid("El id debe ser un UUID válido"),
+});
+
+export const parcelaIdParamSchema = z.object({
+  parcelaId: z.string().uuid("El parcelaId debe ser un UUID válido"),
 });

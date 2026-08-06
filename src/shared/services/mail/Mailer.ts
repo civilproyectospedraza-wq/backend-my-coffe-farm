@@ -27,6 +27,21 @@ export interface CuentaActivadaMail {
 }
 
 /**
+ * Aviso interno a los correos administrativos cuando un propietario crea una
+ * solicitud de entrega. `destinatarios` ya viene filtrado por la bandera
+ * `notificarSolicitudesEntregaPropietarios`.
+ */
+export interface SolicitudEntregaParcelaMail {
+  destinatarios: string[];
+  solicitudId: string;
+  propietarioNombre: string;
+  fincaNombre: string;
+  parcelaNombre: string;
+  cantidadKg: number;
+  fecha: Date;
+}
+
+/**
  * Puerto/contrato de envío de correos, reutilizable entre features.
  * La implementación concreta (Mailgun, SES, etc.) se inyecta desde el módulo.
  */
@@ -36,6 +51,26 @@ export interface Mailer {
   enviarActivacionPropietario(mail: ActivacionPropietarioMail): Promise<void>;
   /** Activación: confirma que la cuenta ya está activa con el enlace de login. */
   enviarCuentaActivada(mail: CuentaActivadaMail): Promise<void>;
+  /** Aviso interno de una nueva solicitud de entrega hecha por un propietario. */
+  enviarSolicitudEntregaParcela(
+    mail: SolicitudEntregaParcelaMail
+  ): Promise<void>;
+}
+
+/** Formatea la cantidad en kilos con separadores de miles en español. */
+function formatearKg(cantidadKg: number): string {
+  return new Intl.NumberFormat("es-CO", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(cantidadKg);
+}
+
+/** Fecha legible (día, mes, año y hora) para el cuerpo de los correos. */
+function formatearFecha(fecha: Date): string {
+  return new Intl.DateTimeFormat("es-CO", {
+    dateStyle: "long",
+    timeStyle: "short",
+  }).format(fecha);
 }
 
 // ---- Logo embebido (inline vía CID) ----
@@ -291,6 +326,58 @@ export class MailgunMailer implements Mailer {
       `My Coffee Farm`;
     await this.send(mail.email, "Tu cuenta ya está activa", html, text);
   }
+
+  async enviarSolicitudEntregaParcela(
+    mail: SolicitudEntregaParcelaMail
+  ): Promise<void> {
+    if (mail.destinatarios.length === 0) {
+      return;
+    }
+
+    const kg = formatearKg(mail.cantidadKg);
+    const fecha = formatearFecha(mail.fecha);
+
+    const html = layout(
+      "Nueva solicitud de entrega",
+      `${parrafo(
+        `El propietario <strong>${mail.propietarioNombre}</strong> registró una solicitud de entrega de café.`
+      )}
+       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 4px;">
+         <tr><td style="padding:16px 20px; background:${COLOR.crema}; border-radius:10px; text-align:left;">
+           <div style="font-size:14px; color:${COLOR.texto}; line-height:1.9;">
+             <strong>Finca:</strong> ${mail.fincaNombre}<br />
+             <strong>Parcela:</strong> ${mail.parcelaNombre}<br />
+             <strong>Cantidad solicitada:</strong> ${kg} kg<br />
+             <strong>Fecha:</strong> ${fecha}<br />
+             <strong>Solicitud:</strong> ${mail.solicitudId}
+           </div>
+         </td></tr>
+       </table>
+       ${parrafo(
+         `<span style="font-size:13px; color:${COLOR.suave};">La solicitud queda en estado <strong>pendiente</strong> hasta que sea gestionada.</span>`
+       )}`,
+      `${mail.propietarioNombre} solicitó una entrega de ${kg} kg.`
+    );
+    const text =
+      `Nueva solicitud de entrega\n\n` +
+      `Propietario: ${mail.propietarioNombre}\n` +
+      `Finca: ${mail.fincaNombre}\n` +
+      `Parcela: ${mail.parcelaNombre}\n` +
+      `Cantidad solicitada: ${kg} kg\n` +
+      `Fecha: ${fecha}\n` +
+      `Solicitud: ${mail.solicitudId}\n\n` +
+      `La solicitud queda en estado pendiente hasta que sea gestionada.\n\n` +
+      `My Coffee Farm`;
+
+    // Un solo envío con todos los destinatarios: son correos internos de la
+    // misma organización, así que verse entre sí no es un problema.
+    await this.send(
+      mail.destinatarios.join(", "),
+      "Nueva solicitud de entrega de un propietario",
+      html,
+      text
+    );
+  }
 }
 
 /**
@@ -320,6 +407,16 @@ export class LogMailer implements Mailer {
     console.log(
       `📧 [Mailer stub] Cuenta activa de ${mail.nombre} <${mail.email}> — ` +
         `login: ${mail.enlaceLogin}`
+    );
+  }
+
+  async enviarSolicitudEntregaParcela(
+    mail: SolicitudEntregaParcelaMail
+  ): Promise<void> {
+    console.log(
+      `📧 [Mailer stub] Solicitud de entrega ${mail.solicitudId} de ` +
+        `${mail.propietarioNombre} (${mail.fincaNombre} / ${mail.parcelaNombre}, ` +
+        `${formatearKg(mail.cantidadKg)} kg) → ${mail.destinatarios.join(", ")}`
     );
   }
 }

@@ -4,7 +4,7 @@ import { TarifaMetraje, TarifaMetrajeVersion } from "../entities/TarifaMetraje";
 export interface CreateTarifaMetrajeData {
   medidaMetrosCuadrados: number;
   valorVenta: number;
-  valorPropietario: number;
+  valorProduccionPropietarioPorKg: number;
   produccionKg: number;
   cantidadMinimaEntrega: number;
   createdBy?: string | null;
@@ -12,7 +12,7 @@ export interface CreateTarifaMetrajeData {
 
 export interface CreateTarifaMetrajeVersionData {
   valorVenta: number;
-  valorPropietario: number;
+  valorProduccionPropietarioPorKg: number;
   produccionKg: number;
   cantidadMinimaEntrega: number;
   createdBy?: string | null;
@@ -20,10 +20,21 @@ export interface CreateTarifaMetrajeVersionData {
 
 export type ListTarifasMetrajeParams = PaginationParams;
 
+// Resultado de buscar la tarifa vigente de una parcela. Distingue los tres
+// casos posibles para que el caso de uso responda el 404 adecuado.
+export interface TarifaMetrajeDeParcela {
+  parcelaExiste: boolean;
+  tarifa: TarifaMetraje | null;
+  versionActual: TarifaMetrajeVersion | null;
+}
+
 /** Puerto: persistencia de las tarifas de metraje y sus versiones. */
 export interface TarifaMetrajeRepository {
   create(data: CreateTarifaMetrajeData): Promise<TarifaMetraje>;
   findById(id: string): Promise<TarifaMetraje | null>;
+  // Tarifa de metraje asignada a la versión actual de una parcela, junto con la
+  // versión vigente de esa tarifa.
+  findByParcelaId(parcelaId: string): Promise<TarifaMetrajeDeParcela>;
   findMany(
     params: ListTarifasMetrajeParams
   ): Promise<PaginatedResult<TarifaMetraje>>;

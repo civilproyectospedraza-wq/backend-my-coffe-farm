@@ -2,7 +2,7 @@ export interface TarifaMetrajeVersionProps {
   id: string;
   tarifaMedidaId: string;
   valorVenta: number;
-  valorPropietario: number;
+  valorProduccionPropietarioPorKg: number;
   produccionKg: number;
   cantidadMinimaEntrega: number;
   createdAt: Date;
@@ -13,7 +13,8 @@ export class TarifaMetrajeVersion {
   readonly id: string;
   readonly tarifaMedidaId: string;
   readonly valorVenta: number;
-  readonly valorPropietario: number;
+  // Valor pagado al propietario por cada kg entregado.
+  readonly valorProduccionPropietarioPorKg: number;
   readonly produccionKg: number;
   readonly cantidadMinimaEntrega: number;
   readonly createdAt: Date;
@@ -23,7 +24,8 @@ export class TarifaMetrajeVersion {
     this.id = props.id;
     this.tarifaMedidaId = props.tarifaMedidaId;
     this.valorVenta = props.valorVenta;
-    this.valorPropietario = props.valorPropietario;
+    this.valorProduccionPropietarioPorKg =
+      props.valorProduccionPropietarioPorKg;
     this.produccionKg = props.produccionKg;
     this.cantidadMinimaEntrega = props.cantidadMinimaEntrega;
     this.createdAt = props.createdAt;
@@ -36,7 +38,7 @@ export interface TarifaMetrajeProps {
   medidaMetrosCuadrados: number;
   versionId: string | null;
   valorVentaActual: number | null;
-  valorPropietarioActual: number | null;
+  valorProduccionPropietarioPorKgActual: number | null;
   produccionKgActual: number | null;
   cantidadMinimaEntregaActual: number | null;
   createdAt: Date;
@@ -48,7 +50,7 @@ export class TarifaMetraje {
   readonly medidaMetrosCuadrados: number;
   readonly versionId: string | null;
   readonly valorVentaActual: number | null;
-  readonly valorPropietarioActual: number | null;
+  readonly valorProduccionPropietarioPorKgActual: number | null;
   readonly produccionKgActual: number | null;
   readonly cantidadMinimaEntregaActual: number | null;
   readonly createdAt: Date;
@@ -59,7 +61,8 @@ export class TarifaMetraje {
     this.medidaMetrosCuadrados = props.medidaMetrosCuadrados;
     this.versionId = props.versionId;
     this.valorVentaActual = props.valorVentaActual;
-    this.valorPropietarioActual = props.valorPropietarioActual;
+    this.valorProduccionPropietarioPorKgActual =
+      props.valorProduccionPropietarioPorKgActual;
     this.produccionKgActual = props.produccionKgActual;
     this.cantidadMinimaEntregaActual = props.cantidadMinimaEntregaActual;
     this.createdAt = props.createdAt;

@@ -1,3 +1,5 @@
+import { BadRequestError } from "@shared/errors/AppError";
+import { validarCosecha } from "../../domain/entities/CosechaParcela";
 import { Parcela } from "../../domain/entities/Parcela";
 import {
   ImageStorage,
@@ -22,6 +24,15 @@ export class CreateParcelaUseCase {
     input: CreateParcelaInput,
     imagenes: UploadImagePayload[]
   ): Promise<Parcela> {
+    // La cantidad de meses debe coincidir con la temporalidad declarada.
+    const errorCosecha = validarCosecha(
+      input.temporalidadCosecha,
+      input.mesesCosecha
+    );
+    if (errorCosecha) {
+      throw new BadRequestError(errorCosecha);
+    }
+
     // Las imágenes de portada son opcionales: se suben primero y luego se
     // referencian en la parcela, conservando el orden.
     const imagenLocalIds: string[] = [];
@@ -39,6 +50,8 @@ export class CreateParcelaUseCase {
       estado: input.estado,
       latitud: input.latitud,
       longitud: input.longitud,
+      temporalidadCosecha: input.temporalidadCosecha,
+      mesesCosecha: input.mesesCosecha,
       imagenLocalIds,
       version: {
         nombre: input.nombre,

@@ -2,6 +2,7 @@ import { prisma } from "@shared/infrastructure/prisma/prismaClient";
 import { CreateTarifaMetrajeUseCase } from "../application/use-cases/CreateTarifaMetrajeUseCase";
 import { CreateTarifaMetrajeVersionUseCase } from "../application/use-cases/CreateTarifaMetrajeVersionUseCase";
 import { GetTarifaMetrajeHistorialUseCase } from "../application/use-cases/GetTarifaMetrajeHistorialUseCase";
+import { GetTarifaMetrajePorParcelaUseCase } from "../application/use-cases/GetTarifaMetrajePorParcelaUseCase";
 import { GetTarifaMetrajeUseCase } from "../application/use-cases/GetTarifaMetrajeUseCase";
 import { ListAllTarifasMetrajeUseCase } from "../application/use-cases/ListAllTarifasMetrajeUseCase";
 import { ListTarifasMetrajeUseCase } from "../application/use-cases/ListTarifasMetrajeUseCase";
@@ -28,6 +29,9 @@ const listAllTarifasMetrajeUseCase = new ListAllTarifasMetrajeUseCase(
 const getTarifaMetrajeHistorialUseCase = new GetTarifaMetrajeHistorialUseCase(
   tarifaMetrajeRepository
 );
+const getTarifaMetrajePorParcelaUseCase = new GetTarifaMetrajePorParcelaUseCase(
+  tarifaMetrajeRepository
+);
 
 export const tarifaMetrajeController = new TarifaMetrajeController(
   createTarifaMetrajeUseCase,
@@ -35,5 +39,6 @@ export const tarifaMetrajeController = new TarifaMetrajeController(
   createTarifaMetrajeVersionUseCase,
   getTarifaMetrajeUseCase,
   listAllTarifasMetrajeUseCase,
-  getTarifaMetrajeHistorialUseCase
+  getTarifaMetrajeHistorialUseCase,
+  getTarifaMetrajePorParcelaUseCase
 );

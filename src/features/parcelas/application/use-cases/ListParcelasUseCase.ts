@@ -1,12 +1,20 @@
 import { PaginatedResult } from "@shared/domain/pagination";
-import { Parcela } from "../../domain/entities/Parcela";
 import { ParcelaRepository } from "../../domain/ports/ParcelaRepository";
-import { ListParcelasInput } from "../dtos/ParcelaDtos";
+import { ListParcelasInput, ParcelaListItemView } from "../dtos/ParcelaDtos";
 
 export class ListParcelasUseCase {
   constructor(private readonly parcelaRepository: ParcelaRepository) {}
 
-  execute(input: ListParcelasInput): Promise<PaginatedResult<Parcela>> {
-    return this.parcelaRepository.findMany(input);
+  async execute(
+    input: ListParcelasInput
+  ): Promise<PaginatedResult<ParcelaListItemView>> {
+    const result = await this.parcelaRepository.findMany(input);
+
+    const data = result.data.map(({ parcela, solicitudEntregaActiva }) => ({
+      ...parcela,
+      solicitud_entrega_activa: solicitudEntregaActiva,
+    }));
+
+    return { ...result, data };
   }
 }

@@ -38,12 +38,17 @@ export interface ParcelaProps {
   longitud: number | null;
   etapaActualId: string | null;
   versionActualId: string | null;
+  // Cuántas veces al año cosecha la parcela (1 a 12).
+  temporalidadCosecha: number | null;
   createdAt: Date;
   finca: ParcelaFinca;
   etapaActual: ParcelaEtapa | null;
   versionActual: ParcelaVersion | null;
   // Galería de portada, en orden.
   imagenes: ParcelaImagen[];
+  // Meses de cosecha (1 = enero … 12 = diciembre), ascendente. Su cantidad
+  // coincide con `temporalidadCosecha`.
+  mesesCosecha: number[];
 }
 
 export class Parcela {
@@ -54,11 +59,13 @@ export class Parcela {
   readonly longitud: number | null;
   readonly etapaActualId: string | null;
   readonly versionActualId: string | null;
+  readonly temporalidadCosecha: number | null;
   readonly createdAt: Date;
   readonly finca: ParcelaFinca;
   readonly etapaActual: ParcelaEtapa | null;
   readonly versionActual: ParcelaVersion | null;
   readonly imagenes: ParcelaImagen[];
+  readonly mesesCosecha: number[];
 
   constructor(props: ParcelaProps) {
     this.id = props.id;
@@ -68,10 +75,12 @@ export class Parcela {
     this.longitud = props.longitud;
     this.etapaActualId = props.etapaActualId;
     this.versionActualId = props.versionActualId;
+    this.temporalidadCosecha = props.temporalidadCosecha;
     this.createdAt = props.createdAt;
     this.finca = props.finca;
     this.etapaActual = props.etapaActual;
     this.versionActual = props.versionActual;
     this.imagenes = props.imagenes;
+    this.mesesCosecha = props.mesesCosecha;
   }
 }

@@ -26,6 +26,7 @@ export class GetResumenDashboardUseCase {
       Promise.all(
         agg.entregasRecientes.map(async (entrega) => ({
           id: entrega.id,
+          parcelaId: entrega.parcelaId,
           suscripcionId: entrega.suscripcionId,
           cantidadEntregada: entrega.cantidadEntregada,
           valorPagado: entrega.valorPagado,

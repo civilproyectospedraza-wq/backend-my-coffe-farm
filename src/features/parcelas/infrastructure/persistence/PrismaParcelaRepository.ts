@@ -13,6 +13,7 @@ import { Parcela } from "../../domain/entities/Parcela";
 import {
   CreateParcelaData,
   ListParcelasParams,
+  ParcelaListItem,
   ParcelaRepository,
   UpdateParcelaData,
 } from "../../domain/ports/ParcelaRepository";
@@ -36,6 +37,11 @@ const parcelaInclude = {
     orderBy: { orden: "asc" },
     select: { imagenLocalId: true, orden: true },
   },
+  // Meses de cosecha, en orden ascendente (1 = enero … 12 = diciembre).
+  mesesCosecha: {
+    orderBy: { mes: "asc" },
+    select: { mes: true },
+  },
 } satisfies Prisma.ParcelaInclude;
 
 type ParcelaWithRelations = Prisma.ParcelaGetPayload<{
@@ -54,6 +60,7 @@ export class PrismaParcelaRepository implements ParcelaRepository {
           estado: data.estado,
           latitud: data.latitud,
           longitud: data.longitud,
+          temporalidadCosecha: data.temporalidadCosecha,
           // Imágenes fijas de portada, en el orden recibido.
           imagenes: data.imagenLocalIds?.length
             ? {
@@ -62,6 +69,11 @@ export class PrismaParcelaRepository implements ParcelaRepository {
                   orden,
                 })),
               }
+            : undefined,
+          // Meses en los que la parcela cosecha; su cantidad ya viene validada
+          // contra `temporalidadCosecha` desde el caso de uso.
+          mesesCosecha: data.mesesCosecha?.length
+            ? { create: data.mesesCosecha.map((mes) => ({ mes })) }
             : undefined,
         },
       });
@@ -107,6 +119,22 @@ export class PrismaParcelaRepository implements ParcelaRepository {
 
       if (data.longitud !== undefined) {
         parcelaData.longitud = data.longitud;
+      }
+
+      if (data.temporalidadCosecha !== undefined) {
+        parcelaData.temporalidadCosecha = data.temporalidadCosecha;
+      }
+
+      // Los meses de cosecha se reemplazan por completo: se borran los
+      // actuales y se insertan los recibidos (ya validados contra la
+      // temporalidad en el caso de uso).
+      if (data.mesesCosecha !== undefined) {
+        await tx.mesCosechaParcela.deleteMany({ where: { parcelaId: id } });
+        if (data.mesesCosecha.length) {
+          await tx.mesCosechaParcela.createMany({
+            data: data.mesesCosecha.map((mes) => ({ parcelaId: id, mes })),
+          });
+        }
       }
 
       // Cambio de etapa: solo actualiza el puntero de etapa actual. El
@@ -211,7 +239,7 @@ export class PrismaParcelaRepository implements ParcelaRepository {
 
   async findMany(
     params: ListParcelasParams
-  ): Promise<PaginatedResult<Parcela>> {
+  ): Promise<PaginatedResult<ParcelaListItem>> {
     const { page, limit, fincaId, estado, propietarioId } = params;
     const skip = (page - 1) * limit;
 
@@ -227,16 +255,26 @@ export class PrismaParcelaRepository implements ParcelaRepository {
         skip,
         take: limit,
         orderBy: { createdAt: "desc" },
-        include: parcelaInclude,
+        include: {
+          ...parcelaInclude,
+          // Conteo filtrado en la misma consulta: evita una query extra por
+          // fila solo para saber si hay una solicitud sin atender.
+          _count: {
+            select: {
+              solicitudesEntrega: { where: { estado: "pendiente" } },
+            },
+          },
+        },
       }),
       this.prisma.parcela.count({ where }),
     ]);
 
-    return buildPaginatedResult(
-      records.map((r) => this.toDomain(r)),
-      total,
-      params
-    );
+    const data: ParcelaListItem[] = records.map((r) => ({
+      parcela: this.toDomain(r),
+      solicitudEntregaActiva: r._count.solicitudesEntrega > 0,
+    }));
+
+    return buildPaginatedResult(data, total, params);
   }
 
   async findAvailableCatalog(
@@ -384,6 +422,7 @@ export class PrismaParcelaRepository implements ParcelaRepository {
       longitud: record.longitud?.toNumber() ?? null,
       etapaActualId: record.etapaActualId,
       versionActualId: record.versionActualId,
+      temporalidadCosecha: record.temporalidadCosecha,
       createdAt: record.createdAt,
       finca: { id: record.finca.id, nombre: record.finca.nombre },
       etapaActual: record.etapaActual
@@ -413,6 +452,7 @@ export class PrismaParcelaRepository implements ParcelaRepository {
         imagenLocalId: img.imagenLocalId,
         orden: img.orden,
       })),
+      mesesCosecha: record.mesesCosecha.map((m) => m.mes),
     });
   }
 }

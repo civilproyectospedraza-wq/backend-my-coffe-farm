@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authRoutes } from "@features/auth/infrastructure/routes/auth.routes";
+import { correosAdministrativosNotificacionesRoutes } from "@features/correos-administrativos-notificaciones/infrastructure/routes/correos-administrativos-notificaciones.routes";
 import { dashboardRoutes } from "@features/dashboard/infrastructure/routes/dashboard.routes";
 import { entregasRoutes } from "@features/entregas/infrastructure/routes/entregas.routes";
 import { etapasRoutes } from "@features/etapas/infrastructure/routes/etapas.routes";
@@ -11,6 +12,7 @@ import { publicPropietariosRoutes } from "@features/propietarios/infrastructure/
 import { registroCaficultoresRoutes } from "@features/registro-caficultores/infrastructure/routes/registro-caficultores.routes";
 import { publicRegistroCaficultoresRoutes } from "@features/registro-caficultores/infrastructure/routes/public-registro-caficultores.routes";
 import { reportesRoutes } from "@features/reportes/infrastructure/routes/reportes.routes";
+import { solicitudesEntregasParcelasRoutes } from "@features/solicitudes-entregas-parcelas/infrastructure/routes/solicitudes-entregas-parcelas.routes";
 import { tarifasMetrajeRoutes } from "@features/tarifas-metraje/infrastructure/routes/tarifas-metraje.routes";
 import { ubicacionesRoutes } from "@features/ubicaciones/infrastructure/routes/ubicaciones.routes";
 import { ventasRoutes } from "@features/ventas/infrastructure/routes/ventas.routes";
@@ -22,6 +24,10 @@ import { ventasRoutes } from "@features/ventas/infrastructure/routes/ventas.rout
 export const apiRoutes = Router();
 
 apiRoutes.use("/auth", authRoutes);
+apiRoutes.use(
+  "/correos-administrativos-notificaciones",
+  correosAdministrativosNotificacionesRoutes
+);
 apiRoutes.use("/dashboard", dashboardRoutes);
 apiRoutes.use("/entregas", entregasRoutes);
 apiRoutes.use("/etapas", etapasRoutes);
@@ -30,6 +36,10 @@ apiRoutes.use("/parcelas", parcelasRoutes);
 apiRoutes.use("/propietarios", propietariosRoutes);
 apiRoutes.use("/registro-caficultores", registroCaficultoresRoutes);
 apiRoutes.use("/reportes", reportesRoutes);
+apiRoutes.use(
+  "/solicitudes-entregas-parcelas",
+  solicitudesEntregasParcelasRoutes
+);
 apiRoutes.use("/tarifas-metraje", tarifasMetrajeRoutes);
 apiRoutes.use("/ubicaciones", ubicacionesRoutes);
 apiRoutes.use("/ventas", ventasRoutes);

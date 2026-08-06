@@ -15,6 +15,7 @@ import {
   CreateTarifaMetrajeData,
   CreateTarifaMetrajeVersionData,
   ListTarifasMetrajeParams,
+  TarifaMetrajeDeParcela,
   TarifaMetrajeRepository,
 } from "../../domain/ports/TarifaMetrajeRepository";
 
@@ -40,7 +41,7 @@ export class PrismaTarifaMetrajeRepository implements TarifaMetrajeRepository {
         data: {
           tarifaMedidaId: tarifa.id,
           valorVenta: data.valorVenta,
-          valorPropietario: data.valorPropietario,
+          valorProduccionPropietarioPorKg: data.valorProduccionPropietarioPorKg,
           produccionKg: data.produccionKg,
           cantidadMinimaEntrega: data.cantidadMinimaEntrega,
           createdBy: data.createdBy ?? null,
@@ -63,6 +64,38 @@ export class PrismaTarifaMetrajeRepository implements TarifaMetrajeRepository {
       include: { versionActual: true },
     });
     return found ? this.toDomain(found) : null;
+  }
+
+  async findByParcelaId(parcelaId: string): Promise<TarifaMetrajeDeParcela> {
+    // La tarifa vive en la versión actual de la parcela; desde ahí se llega a
+    // la tarifa de metraje y a su versión vigente.
+    const parcela = await this.prisma.parcela.findUnique({
+      where: { id: parcelaId },
+      select: {
+        versionActual: {
+          select: {
+            tarifaMetraje: { include: { versionActual: true } },
+          },
+        },
+      },
+    });
+
+    if (!parcela) {
+      return { parcelaExiste: false, tarifa: null, versionActual: null };
+    }
+
+    const tarifa = parcela.versionActual?.tarifaMetraje ?? null;
+    if (!tarifa) {
+      return { parcelaExiste: true, tarifa: null, versionActual: null };
+    }
+
+    return {
+      parcelaExiste: true,
+      tarifa: this.toDomain(tarifa),
+      versionActual: tarifa.versionActual
+        ? this.toVersionDomain(tarifa.versionActual)
+        : null,
+    };
   }
 
   async findMany(
@@ -114,7 +147,7 @@ export class PrismaTarifaMetrajeRepository implements TarifaMetrajeRepository {
         data: {
           tarifaMedidaId: tarifaId,
           valorVenta: data.valorVenta,
-          valorPropietario: data.valorPropietario,
+          valorProduccionPropietarioPorKg: data.valorProduccionPropietarioPorKg,
           produccionKg: data.produccionKg,
           cantidadMinimaEntrega: data.cantidadMinimaEntrega,
           createdBy: data.createdBy ?? null,
@@ -138,8 +171,8 @@ export class PrismaTarifaMetrajeRepository implements TarifaMetrajeRepository {
       medidaMetrosCuadrados: record.medidaMetrosCuadrados.toNumber(),
       versionId: record.versionId,
       valorVentaActual: record.versionActual?.valorVenta.toNumber() ?? null,
-      valorPropietarioActual:
-        record.versionActual?.valorPropietario.toNumber() ?? null,
+      valorProduccionPropietarioPorKgActual:
+        record.versionActual?.valorProduccionPropietarioPorKg.toNumber() ?? null,
       produccionKgActual: record.versionActual?.produccionKg.toNumber() ?? null,
       cantidadMinimaEntregaActual:
         record.versionActual?.cantidadMinimaEntrega.toNumber() ?? null,
@@ -155,7 +188,8 @@ export class PrismaTarifaMetrajeRepository implements TarifaMetrajeRepository {
       id: record.id,
       tarifaMedidaId: record.tarifaMedidaId,
       valorVenta: record.valorVenta.toNumber(),
-      valorPropietario: record.valorPropietario.toNumber(),
+      valorProduccionPropietarioPorKg:
+        record.valorProduccionPropietarioPorKg.toNumber(),
       produccionKg: record.produccionKg.toNumber(),
       cantidadMinimaEntrega: record.cantidadMinimaEntrega.toNumber(),
       createdAt: record.createdAt,

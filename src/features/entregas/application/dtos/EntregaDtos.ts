@@ -3,9 +3,13 @@ import { UploadImagePayload } from "../../domain/ports/ImageStorage";
 /** Comprobante de pago recibido en el request, listo para subir. */
 export type ComprobanteImagen = UploadImagePayload;
 
-/** Datos de entrada para crear una entrega (sin la imagen). */
+/**
+ * Datos de entrada para crear una entrega (sin la imagen). La parcela no se
+ * recibe: se deriva de la solicitud que la entrega atiende.
+ */
 export interface CreateEntregaInput {
-  suscripcionId: string;
+  solicitudId: string;
+  suscripcionId?: string;
   cantidadEntregada: number;
   valorPagado: number;
 }
@@ -19,18 +23,22 @@ export interface UpdateEntregaInput {
 /** Entrega ya resuelta para responder al cliente (URL pública del comprobante). */
 export interface EntregaResponse {
   id: string;
-  suscripcionId: string;
+  parcelaId: string;
+  suscripcionId: string | null;
+  solicitudId: string | null;
   cantidadEntregada: number;
   valorPagado: number;
   comprobanteUrl: string | null;
   createdAt: string;
 }
 
-/** Parámetros para paginar entregas (filtro opcional por suscripción). */
+/** Parámetros para paginar entregas (filtros opcionales). */
 export interface ListEntregasInput {
   page: number;
   limit: number;
+  parcelaId?: string;
   suscripcionId?: string;
+  solicitudId?: string;
   /** Scope de propietario resuelto desde el JWT (undefined = Admin, ve todo). */
   propietarioId?: string;
 }
